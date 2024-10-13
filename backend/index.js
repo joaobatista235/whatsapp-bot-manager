@@ -1,32 +1,44 @@
 const express = require('express');
 const venom = require('venom-bot');
 const { OpenAI } = require('openai');
-const bodyParser = require('body-parser');
+const { json } = require('body-parser');
+const cors = require('cors');
 
 const app = express();
-app.use(bodyParser.json());
+app.use(cors());
+app.use(json());
 
 const bots = {};
 
-function createBotForCompany(companyId, context, apiKey) {
-    venom.create({session: `session-${companyId}`})
-        .then(client => {
-            if (!client) {
-                throw new Error('Falha ao criar a sessão do Venom.');
-            }
-            
-            bots[companyId] = { client, context, apiKey };
-
-            client.onMessage(async (message) => {
-                if (message.isGroupMsg === false) {
-                    const response = await handleMessage(companyId, message.body);
-                    client.sendText(message.from, response);
-                }
+async function createBotForCompany(companyId, context, apiKey) {
+    return new Promise((resolve, reject) => {
+        venom
+            .create(
+                `session-${companyId}`,
+                (base64Qrimg) => resolve(base64Qrimg),
+                (statusSession) => console.log('Status Session: ', statusSession),
+                { logQR: false }
+            )
+            .then((client) => start(client, { client, context, apiKey }))
+            .catch((erro) => {
+                console.error('Erro ao criar sessão:', erro);
+                reject(erro);
             });
-        })
-        .catch(err => {
-            console.error(`Erro ao criar sessão Venom para ${companyId}:`, err);
-        });
+    });
+}
+
+function start(client, data) {
+    if (!client) {
+        throw new Error("Falha ao criar a sessão do Venom.");
+    }
+    bots[companyId] = data;
+
+    client.onMessage(async (message) => {
+        if (message.isGroupMsg === false) {
+            const response = await handleMessage(companyId, message.body);
+            client.sendText(message.from, response);
+        }
+    });
 }
 
 async function handleMessage(companyId, message) {
@@ -55,31 +67,29 @@ async function handleMessage(companyId, message) {
     }
 }
 
-app.post('/create-bot', (req, res) => {
+app.post('/create-bot', async (req, res) => {
     const { companyId, context, apiKey } = req.body;
 
-    if (!companyId || !context || !apiKey) {
-        return res.status(400).send('Informações insuficientes');
+    if (!companyId) {
+        return res.status(400).send('O campo companyId é obrigatório.');
     }
 
-    createBotForCompany(companyId, context, apiKey);
+    if (!context) {
+        return res.status(400).send('O campo context é obrigatório.');
+    }
 
-    res.send(`Bot para a empresa ${companyId} foi configurado com sucesso!`);
-});
+    if (!apiKey) {
+        return res.status(400).send('O campo apiKey é obrigatório.');
+    }
 
-app.get('/test', async (req, res) => {
-    const openai = new OpenAI({
-        apiKey: '',
-    });
-
-    const response = await openai.chat.completions.create({
-        messages: [{ role: 'user', content: 'Say this is a test' }],
-        model: 'gpt-3.5-turbo'
-    });
-
-    console.log(response)
+    try {
+        const qrCode = await createBotForCompany(companyId, context, apiKey);
+        res.json({ message: `Bot para a empresa ${companyId} foi configurado com sucesso!`, qrcode: qrCode });
     
-})
+    } catch (error) {
+        res.status(500).send('Erro ao criar bot');
+    }
+});
 
 app.listen(3000, () => {
     console.log('Servidor rodando na porta 3000');
