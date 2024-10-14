@@ -38,12 +38,13 @@ const Dashboard = () => {
 
     const handleSubmit = async () => {
         try {
-            const response = await axios.post('http://localhost:3000/create-bot', {
+            const response = await axios.post('http://localhost:3000/api/create-bot', {
                 companyId: formData.nomeEmpresa, 
                 context: formData.contexto, 
                 apiKey: formData.chaveAPI
                 
             });
+            console.log("Respondeu")
             console.log(response.data.qrcode);
             setQrCode(response.data.qrcode);
           } catch (error) {
