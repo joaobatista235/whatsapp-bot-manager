@@ -22,7 +22,7 @@ function start(client, data) {
     bots[companyId] = data;
 
     client.onMessage(async (message) => {
-        if (message.isGroupMsg) {
+        if (!message.isGroupMsg) {
             const response = await handleMessage(companyId, message.body);
             client.sendText(message.from, response);
         }
