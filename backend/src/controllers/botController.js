@@ -14,3 +14,12 @@ exports.createBot = async (req, res, next) => {
         next(error);
     }
 };
+
+exports.startAllBots = async (req, res, next) => {
+    try {
+        await botService.startAllBots();
+        res.json({ message: 'Todos os bots foram iniciados com sucesso!' });
+    } catch (error) {
+        next(error);
+    }
+};
