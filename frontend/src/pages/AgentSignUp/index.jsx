@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Header from "../../components/header";
+
+import { Radio, Select, Typography, Input } from "antd";
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+
 import {
   FormControl,
   FormLabel,
-  Input,
   Image,
   Spinner,
-  Textarea,
   Center,
-  useDisclosure,
   Button,
   ButtonGroup,
   Tooltip,
@@ -19,13 +21,47 @@ import { Div } from "../../styles/style";
 import useViewport from "../../_Hooks/useViewPort";
 
 function AgentSignUp() {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const industryOptions = [
+    { value: "agronegocio", label: "Agronegócio" },
+    { value: "automotivo", label: "Automotivo" },
+    { value: "tecnologia", label: "Tecnologia" },
+    { value: "construcao_civil", label: "Construção Civil" },
+    { value: "educacao", label: "Educação" },
+    { value: "energia_utilidades", label: "Energia e Utilidades" },
+    { value: "financeiro", label: "Financeiro" },
+    { value: "saude_farmaceutico", label: "Saúde e Farmacêutico" },
+    { value: "varejo_comercio", label: "Varejo e Comércio" },
+    { value: "servicos", label: "Serviços" },
+    { value: "telecomunicacoes", label: "Telecomunicações" },
+    { value: "transporte_logistica", label: "Transporte e Logística" },
+    { value: "turismo_hotelaria", label: "Turismo e Hotelaria" },
+    { value: "alimenticio_bebidas", label: "Alimentício e Bebidas" },
+    { value: "imobiliario", label: "Imobiliário" },
+    { value: "seguros", label: "Seguros" },
+    { value: "midia_entretenimento", label: "Mídia e Entretenimento" },
+    { value: "mineracao", label: "Mineração" },
+    { value: "quimico", label: "Químico" },
+    { value: "textil_vestuario", label: "Têxtil e Vestuário" },
+  ];
+
+  const chatGptModelOptions = [
+    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+    { value: "gpt-3.5-turbo-16k", label: "GPT-3.5 Turbo 16K" },
+    { value: "gpt-4", label: "GPT-4" },
+    { value: "gpt-4-32k", label: "GPT-4 32K" },
+  ];
+
   const [qrCode, setQrCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    nomeEmpresa: "",
-    contexto: "",
-    chaveAPI: "",
+    nameCompany: "",
+    context: "",
+    apiKey: "",
+    modelIA: chatGptModelOptions[0].value,
+    objective: "sale",
+    communication: "normal",
+    nameAgent: "",
+    sector: industryOptions[0].value,
   });
   const { isMobile } = useViewport(window.innerWidth);
   const _isMobile = isMobile();
@@ -39,19 +75,13 @@ function AgentSignUp() {
     });
   };
 
-  const handleCancel = () => {
-    navigate("/dashboard");
-  };
-
   const handleSubmit = async () => {
     try {
       setLoading(true);
       const response = await axios.post(
         "http://localhost:3000/api/create-bot",
         {
-          companyId: formData.nomeEmpresa,
-          context: formData.contexto,
-          apiKey: formData.chaveAPI,
+          ...formData,
         }
       );
       setQrCode(response.data.qrcode);
@@ -63,8 +93,6 @@ function AgentSignUp() {
       );
     }
   };
-
-  const initialRef = React.useRef(null);
 
   const contextTooltip = (
     <Div padding={"16px"} direction="column" gap={"8px"}>
@@ -88,80 +116,172 @@ function AgentSignUp() {
     </Div>
   );
   return (
-    <>
-      <Header text="LOGO" />
+    <Div direction="column" gap={"16px"}>
       <Div
         direction="column"
-        width={_isMobile ? "calc(100% - 32px)" : "40%"}
-        margin="24px auto"
+        align="left"
+        width="60%"
+        margin={"0 auto"}
+        padding={"24px 32px"}
+        $borderRadius="8px"
+        $backgroundColor="white"
       >
-        <FormControl isRequired>
-          <FormLabel>Nome do Agente</FormLabel>
-
-          <Input
-            ref={initialRef}
-            placeholder="Nome da Agente"
-            name="nomeEmpresa"
-            value={formData.nomeEmpresa}
-            onChange={handleInputChange}
-          />
-        </FormControl>
-
-        <FormControl mt={4} isRequired>
-          <Tooltip
-            borderRadius={"8px"}
-            placement="left-start"
-            label={contextTooltip}
-          >
-            <FormLabel>Contexto</FormLabel>
-          </Tooltip>
-          <Textarea
-            placeholder="Contexto"
-            name="contexto"
-            value={formData.contexto}
-            onChange={handleInputChange}
-            rows={16}
-          />
-        </FormControl>
-        <FormControl mt={4} isRequired>
-          <FormLabel>Chave da OpenAI API</FormLabel>
-          <Input
-            placeholder="Chave da OpenAI API"
-            name="chaveAPI"
-            value={formData.chaveAPI}
-            onChange={handleInputChange}
-          />
-        </FormControl>
-        {qrCode && (
-          <FormControl mt={4}>
-            <FormLabel>QR Code:</FormLabel>
-            <Center>
-              {loading ? (
-                <Spinner
-                  thickness="4px"
-                  speed="0.65s"
-                  emptyColor="gray.200"
-                  color="blue.500"
-                  size="xl"
-                />
-              ) : (
-                qrCode && <Image src={`${qrCode}`} alt="QR Code" />
-              )}
-            </Center>
-          </FormControl>
-        )}
-        <FormControl mt={4}>
-          <ButtonGroup width={"100%"} justifyContent={"space-between"}>
-            <Button onClick={handleCancel} colorScheme="red">
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit} colorScheme="green">
-              Criar
-            </Button>
-          </ButtonGroup>
-        </FormControl>
+        <Title level={2}>Agentes de IA</Title>
+        <Text>
+          Aqui você consegue criar, configurar e treinar os seus agentes de IA.
+          Lembrando que o agente IA é um especialista; portanto, se a tarefa
+          dele for mais específica, provavelmente ele terá um nível de acertos
+          em um tempo menor.
+        </Text>
       </Div>
-    </>
+      <Div
+        direction="column"
+        align="left"
+        width="60%"
+        margin={"0 auto"}
+        padding={"24px 32px"}
+        $borderRadius="8px"
+        $backgroundColor="white"
+      >
+        <Div
+          direction="column"
+          width={_isMobile ? "calc(100% - 32px)" : "100%"}
+          gap="16px"
+        >
+          <Div $fullWidth gap="32px">
+            <FormControl isRequired>
+              <FormLabel>Nome do Agente</FormLabel>
+              <Input
+                placeholder="Nome do Agente"
+                name="nameAgent"
+                value={formData.nameAgent}
+                onChange={handleInputChange}
+              />
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>Modelo de IA</FormLabel>
+              <Select
+                onChange={handleInputChange}
+                defaultValue={formData.modelIA}
+                style={{
+                  width: "100%",
+                }}
+                options={chatGptModelOptions}
+              />
+            </FormControl>
+          </Div>
+
+          <Div $fullWidth gap="32px">
+            <FormControl isRequired>
+              <FormLabel>Objetivo do Agente</FormLabel>
+
+              <Radio.Group
+                name="objective"
+                value={formData.objective}
+                onChange={handleInputChange}
+              >
+                <Radio.Button value="sale">Venda</Radio.Button>
+                <Radio.Button value="suport">Suporte</Radio.Button>
+              </Radio.Group>
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>Forma de comunicação</FormLabel>
+
+              <Radio.Group
+                name="communication"
+                value={formData.communication}
+                onChange={handleInputChange}
+              >
+                <Radio.Button value="normal">Normal</Radio.Button>
+                <Radio.Button value="formal">Formal</Radio.Button>
+                <Radio.Button value="relaxed">Descontraído</Radio.Button>
+              </Radio.Group>
+            </FormControl>
+          </Div>
+
+          <Div $fullWidth gap="32px">
+            <FormControl isRequired>
+              <FormLabel>Nome da Empresa</FormLabel>
+              <Input
+                placeholder="Nome da Empresa"
+                name="nameCompany"
+                value={formData.nameCompany}
+                onChange={handleInputChange}
+              />
+            </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel>Setor/Indústria</FormLabel>
+              <Select
+                name="sector"
+                defaultValue={formData.sector}
+                style={{
+                  width: "100%",
+                }}
+                options={industryOptions}
+              />
+            </FormControl>
+          </Div>
+
+          <FormControl isRequired>
+            <Tooltip
+              borderRadius={"8px"}
+              placement="left-start"
+              label={contextTooltip}
+            >
+              <FormLabel>Contexto</FormLabel>
+            </Tooltip>
+            <TextArea
+              placeholder="Descreva o contexto aqui..."
+              name="context"
+              value={formData.context}
+              onChange={handleInputChange}
+              rows={10}
+            />
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel>Chave da OpenAI API</FormLabel>
+            <Input
+              placeholder="Chave da OpenAI API"
+              name="apiKey"
+              value={formData.chaveAPI}
+              onChange={handleInputChange}
+            />
+          </FormControl>
+          {qrCode && (
+            <FormControl>
+              <FormLabel>QR Code:</FormLabel>
+              <Center>
+                {loading ? (
+                  <Spinner
+                    thickness="4px"
+                    speed="0.65s"
+                    emptyColor="gray.200"
+                    color="blue.500"
+                    size="xl"
+                  />
+                ) : (
+                  qrCode && <Image src={`${qrCode}`} alt="QR Code" />
+                )}
+              </Center>
+            </FormControl>
+          )}
+          <FormControl>
+            <ButtonGroup width={"100%"} justifyContent={"space-between"}>
+              <Button onClick={() => navigate(-1)} colorScheme="gray">
+                Voltar
+              </Button>
+
+              <Button onClick={handleSubmit} colorScheme="green">
+                Avançar
+              </Button>
+            </ButtonGroup>
+          </FormControl>
+        </Div>
+      </Div>
+    </Div>
   );
 }
 
