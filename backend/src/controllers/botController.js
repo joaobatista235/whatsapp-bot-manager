@@ -40,6 +40,17 @@ exports.createBot = async (req, res, next) => {
   }
 };
 
+exports.removeBot = async (req, res, next) => {
+  const { nameCompany } = req.body;
+  try {
+    await botService.removeBotCompany(nameCompany);
+    res.status(200).json({ message: `Bot da empresa ${nameCompany} removido com sucesso!` });
+  } catch (error) {
+    console.error('Erro ao remover o bot:', error);
+    next(error);
+  }
+}
+
 exports.startAllBots = async (req, res, next) => {
   try {
     await botService.startAllBots();

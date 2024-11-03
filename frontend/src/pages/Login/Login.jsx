@@ -76,9 +76,9 @@ const Login = () => {
             />
             <InputRightElement width="4.5rem">
               {show ? (
-                <BsEyeSlash onClick={() => setShow((prev) => !prev)} />
+                <BsEyeSlash onClick={() => setShow((prev) => !prev)} cursor="pointer" />
               ) : (
-                <BsEyeSlashFill onClick={() => setShow((prev) => !prev)} />
+                <BsEyeSlashFill onClick={() => setShow((prev) => !prev)} cursor="pointer" />
               )}
             </InputRightElement>
           </InputGroup>

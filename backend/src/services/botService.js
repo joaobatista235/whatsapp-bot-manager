@@ -1,12 +1,18 @@
 const venom = require("venom-bot");
 const { OpenAI } = require("openai");
-const { saveBotData, getActiveBots } = require("./firebaseService");
-
-const bots = {};
-
-const getTokenFilePath = (companyId) => {
-  return path.join(__dirname, `../../tokens/session-${companyId}.json`);
+const { saveBotData, getActiveBots, deleteBotData } = require("./firebaseService");
+const path = require('path');
+const fs = require('fs');
+const getTokenFilePath = (nameCompany) => {
+  return path.join(__dirname, `../../tokens/session-${nameCompany}`);
 };
+
+const models = {
+  1: 'gpt-3.5-turbo',
+  2: 'gpt-3.5-turbo-16k-0613',
+  3: 'gpt-4o',
+  4: 'gpt-4-32k'
+}
 
 exports.createBotForCompany = async ({
   nameCompany,
@@ -36,6 +42,7 @@ exports.createBotForCompany = async ({
             sector,
             createdAt,
             updatedAt,
+            isActive: true
           };
 
           saveBotData(nameCompany, botData)
@@ -47,9 +54,9 @@ exports.createBotForCompany = async ({
             });
         },
         (statusSession) => console.log("Status Session: ", statusSession),
-        { logQR: false, createPathFileToken: false }
+        { logQR: true, createPathFileToken: false }
       )
-      .then((client) => startBot(client, { nameCompany, context, apiKey }))
+      .then((client) => startBot(client, botData))
       .catch((erro) => {
         reject(erro);
       });
@@ -60,25 +67,26 @@ exports.startAllBots = async () => {
   try {
     const allBots = await getActiveBots();
     for (const bot of allBots) {
-      const { companyId } = bot;
-      const tokenFilePath = getTokenFilePath(companyId);
+      const { nameCompany } = bot;
+      const tokenFilePath = getTokenFilePath(nameCompany);
       if (fs.existsSync(tokenFilePath)) {
         venom
           .create(
-            `session-${companyId}`,
+            `session-${nameCompany}`,
             (base64Qrimg) => {
-              console.log(`Bot ${companyId} iniciado com sucesso!`);
+              console.log(`Bot ${nameCompany} iniciado com sucesso!`);
             },
             (statusSession) => console.log("Status Session: ", statusSession),
             {
-              logQR: false,
               createPathFileToken: false,
-              sessionToken: require(tokenFilePath),
+              multidevice: true,
+              folderNameToken: path.dirname(tokenFilePath),
+              sessionTokenFile: path.basename(tokenFilePath)
             }
           )
           .then((client) => startBot(client, bot))
           .catch((error) =>
-            console.error(`Erro ao iniciar o bot ${companyId}:`, error)
+            console.error(`Erro ao iniciar o bot ${nameCompany}:`, error)
           );
       }
     }
@@ -88,15 +96,11 @@ exports.startAllBots = async () => {
 };
 
 async function startBot(client, data) {
-  const { nameCompany } = data;
-
   if (!client) throw new Error("Falha ao criar a sessão do Venom.");
-
-  bots[nameCompany] = data;
 
   client.onMessage(async (message) => {
     if (!message.isGroupMsg) {
-      const response = await handleMessage(nameCompany, message.body);
+      const response = await handleMessage(data, message.body);
       client.sendText(message.from, response);
     }
   });
@@ -115,12 +119,8 @@ async function startBot(client, data) {
   });
 }
 
-async function handleMessage(nameCompany, message) {
-  const bot = bots[nameCompany];
-  if (!bot) return "Bot não encontrado.";
-  console.log(bot);
-
-  const openai = new OpenAI({ apiKey: bot.apiKey });
+async function handleMessage(data, message) {
+  const openai = new OpenAI({ apiKey: data.apiKey });
 
   try {
     const response = await openai.chat.completions.create({
@@ -129,13 +129,14 @@ async function handleMessage(nameCompany, message) {
         {
           role: "system",
           content: `
-          Você é um agente de IA chamado: ${bot.nameAgent}
-          Representa a empresa: ${bot.nameCompany}
-          Seu objetivo é auxiliar em: ${bot.objective}
-          Sua comunicação deve ser: ${bot.communication}
-          Contexto atual: ${bot.context}
-          Caso receba perguntas fora desse contexto, informe que não consegue responder.
-          `,
+          Você é um agente de IA chamado "${data.nameAgent}", um assistente virtual oficial da empresa "${data.nameCompany}".
+          Seu principal objetivo é ajudar com: ${data.objective}.
+          Comunicação ideal: ${data.communication}.
+
+          **Contexto do atendimento**: ${data.context}
+
+          Sempre mantenha o foco no contexto acima. Se alguma pergunta estiver fora desse contexto, responda educadamente que você não pode fornecer essa informação.
+          `
         },
         { role: "user", content: message },
       ],
@@ -145,5 +146,22 @@ async function handleMessage(nameCompany, message) {
   } catch (error) {
     console.error("Erro ao gerar resposta do bot:", error);
     return "Desculpe, ocorreu um erro ao processar sua solicitação.";
+  }
+}
+
+exports.removeBotCompany = async (nameCompany) => {
+  try {
+    deleteBotData(nameCompany);
+
+    const tokenFilePath = getTokenFilePath(nameCompany);
+    if (fs.existsSync(tokenFilePath)) {
+      fs.rm(tokenFilePath, { recursive: true });
+      console.log(`Pasta de tokens para ${nameCompany} removida com sucesso.`);
+    } else {
+      console.warn(`Pasta de tokens não encontrada para ${nameCompany}.`);
+    }
+  } catch (error) {
+    console.error(`Erro ao excluir o bot da empresa ${nameCompany}.`);
+    throw error;
   }
 }

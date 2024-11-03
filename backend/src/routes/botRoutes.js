@@ -3,6 +3,7 @@ const botController = require('../controllers/botController');
 const router = express.Router();
 
 router.post('/create-bot', botController.createBot);
-router.post('/start-all', botController.startAllBots);
+router.get('/start-all', botController.startAllBots);
+router.delete('/remove-bot', botController.removeBot);
 
 module.exports = router;
