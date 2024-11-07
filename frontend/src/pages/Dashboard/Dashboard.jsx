@@ -1,36 +1,19 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button, Table, Typography } from "antd";
 import { Div } from "../../styles/style";
 import { useNavigate } from "react-router-dom";
+import { getAgents } from "../../services/agent";
 
 const { Title } = Typography;
 
-const data = [
-  {
-    key: "1",
-    nameCompany: "Empresa A",
-    context: "Atendimento ao Cliente",
-    apiKey: "12345",
-    modelIA: "gpt-3.5",
-    objective: "Vendas",
-    communication: "Normal",
-    nameAgent: "Agente A",
-    sector: "Tecnologia",
-  },
-  {
-    key: "2",
-    nameCompany: "Empresa B",
-    context: "Suporte Técnico",
-    apiKey: "67890",
-    modelIA: "gpt-3.5",
-    objective: "Vendas",
-    communication: "Normal",
-    nameAgent: "Agente B",
-    sector: "Saúde",
-  },
-];
-
 const Dashboard = () => {
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    getAgents().then((data) => {
+      console.log(data);
+      setList(data);
+    });
+  }, []);
   const columns = [
     {
       title: "Empresa",
@@ -88,9 +71,9 @@ const Dashboard = () => {
           Novo Agente
         </Button>
       </Div>
-
-      <div style={{ flex: 1, overflow: "auto" }}>
+      <Div $fullWidth>
         <Table
+          style={{ width: "100%" }}
           onRow={(record, rowIndex) => {
             return {
               onClick: (event) => {
@@ -99,13 +82,12 @@ const Dashboard = () => {
             };
           }}
           bordered
-          dataSource={data}
+          dataSource={list}
           columns={columns}
           rowKey="id"
           pagination={{ pageSize: 5 }}
-          scroll={{ y: "calc(100vh - 100px)" }} // Ajuste a altura conforme necessário
         />
-      </div>
+      </Div>
     </Div>
   );
 };
