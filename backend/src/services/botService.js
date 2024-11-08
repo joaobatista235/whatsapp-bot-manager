@@ -1,18 +1,19 @@
 const venom = require("venom-bot");
 const { OpenAI } = require("openai");
-const { saveBotData, getActiveBots, deleteBotData } = require("./firebaseService");
-const path = require('path');
-const fs = require('fs');
-const getTokenFilePath = (nameCompany) => {
-  return path.join(__dirname, `../../tokens/session-${nameCompany}`);
-};
+const {
+  saveBotData,
+  getActiveBots,
+  deleteBotData,
+} = require("./firebaseService");
+const path = require("path");
+const fs = require("fs");
 
-const models = {
-  1: 'gpt-3.5-turbo',
-  2: 'gpt-3.5-turbo-16k-0613',
-  3: 'gpt-4o',
-  4: 'gpt-4-32k'
-}
+const getTokenFilePath = (nameCompany) => {
+  return path.join(
+    __dirname,
+    `../../tokens/session-${nameCompany.replace(/\s+/g, "")}`
+  );
+};
 
 exports.createBotForCompany = async ({
   nameCompany,
@@ -26,6 +27,7 @@ exports.createBotForCompany = async ({
   createdAt,
   updatedAt,
 }) => {
+  console.log("Iniciando criação do bot...");
   return new Promise((resolve, reject) => {
     venom
       .create(
@@ -42,22 +44,27 @@ exports.createBotForCompany = async ({
             sector,
             createdAt,
             updatedAt,
-            isActive: true
+            isActive: true,
           };
-
+          console.log("Salvando dados do bot...");
           saveBotData(nameCompany, botData)
             .then(() => {
               resolve(base64Qrimg);
             })
             .catch((error) => {
+              console.error("Erro ao salvar dados do bot:", error);
               reject(error);
             });
         },
         (statusSession) => console.log("Status Session: ", statusSession),
         { logQR: true, createPathFileToken: false }
       )
-      .then((client) => startBot(client, botData))
+      .then((client) => {
+        console.log("Iniciando o bot...");
+        startBot(client, botData);
+      })
       .catch((erro) => {
+        console.error("Erro na criação do bot:", erro);
         reject(erro);
       });
   });
@@ -66,9 +73,14 @@ exports.createBotForCompany = async ({
 exports.startAllBots = async () => {
   try {
     const allBots = await getActiveBots();
+    console.log(allBots);
+
     for (const bot of allBots) {
       const { nameCompany } = bot;
       const tokenFilePath = getTokenFilePath(nameCompany);
+      console.log(tokenFilePath);
+      console.log(fs.existsSync(tokenFilePath));
+
       if (fs.existsSync(tokenFilePath)) {
         venom
           .create(
@@ -81,7 +93,7 @@ exports.startAllBots = async () => {
               createPathFileToken: false,
               multidevice: true,
               folderNameToken: path.dirname(tokenFilePath),
-              sessionTokenFile: path.basename(tokenFilePath)
+              sessionTokenFile: path.basename(tokenFilePath),
             }
           )
           .then((client) => startBot(client, bot))
@@ -96,6 +108,10 @@ exports.startAllBots = async () => {
 };
 
 async function startBot(client, data) {
+  console.log("startando bot");
+  console.log(client);
+  console.log(data);
+
   if (!client) throw new Error("Falha ao criar a sessão do Venom.");
 
   client.onMessage(async (message) => {
@@ -112,7 +128,7 @@ async function startBot(client, data) {
       state === "UNPAIRED" ||
       state === "UNLAUNCHED"
     ) {
-      await db.collection("whatsapp-agents").doc(nameCompany).update({
+      await db.collection("agents").doc(nameCompany).update({
         isActive: false,
       });
     }
@@ -136,7 +152,7 @@ async function handleMessage(data, message) {
           **Contexto do atendimento**: ${data.context}
 
           Sempre mantenha o foco no contexto acima. Se alguma pergunta estiver fora desse contexto, responda educadamente que você não pode fornecer essa informação.
-          `
+          `,
         },
         { role: "user", content: message },
       ],
@@ -164,4 +180,4 @@ exports.removeBotCompany = async (nameCompany) => {
     console.error(`Erro ao excluir o bot da empresa ${nameCompany}.`);
     throw error;
   }
-}
+};

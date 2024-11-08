@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { Button, Table, Typography } from "antd";
+import { Button, Dropdown, Menu, Table, Typography } from "antd";
 import { Div } from "../../styles/style";
 import { useNavigate } from "react-router-dom";
 import { getAgents } from "../../services/agent";
+import {
+  comunicationOptions,
+  industryOptions,
+  objectiveOptions,
+} from "../../../../backend/src/assets/enumHelper";
+import {
+  AiOutlineBars,
+  AiOutlineDelete,
+  AiOutlineEdit,
+  AiOutlineFileText,
+} from "react-icons/ai";
+import { FaEllipsisV } from "react-icons/fa";
 
 const { Title } = Typography;
 
@@ -14,12 +26,23 @@ const Dashboard = () => {
       setList(data);
     });
   }, []);
+
+  const actionMenu = (
+    <Menu>
+      <Menu.Item disabled icon={<AiOutlineEdit />} key="1">
+        Editar
+      </Menu.Item>
+
+      <Menu.Item disabled icon={<AiOutlineFileText />} key="3">
+        Visualizar
+      </Menu.Item>
+      <Menu.Item disabled icon={<AiOutlineDelete />} key="2">
+        Excluir
+      </Menu.Item>
+    </Menu>
+  );
+
   const columns = [
-    {
-      title: "Empresa",
-      dataIndex: "nameCompany",
-      key: "nameCompany",
-    },
     {
       title: "Nome do Agente",
       dataIndex: "nameAgent",
@@ -29,22 +52,55 @@ const Dashboard = () => {
       title: "Objetivo",
       dataIndex: "objective",
       key: "objective",
+
+      render: (val, row) => {
+        const objective = objectiveOptions.find(
+          (option) => option.value === val
+        );
+
+        return <div>{objective ? objective.label : val}</div>;
+      },
     },
     {
       title: "Comunicação",
       dataIndex: "communication",
       key: "communication",
-    },
 
+      render: (val, row) => {
+        const comunication = comunicationOptions.find(
+          (option) => option.value === val
+        );
+
+        return <div>{comunication ? comunication.label : val}</div>;
+      },
+    },
+    {
+      title: "Empresa",
+      dataIndex: "nameCompany",
+      key: "nameCompany",
+    },
     {
       title: "Setor",
       dataIndex: "sector",
       key: "sector",
+      render: (val, row) => {
+        const industry = industryOptions.find((option) => option.value === val);
+
+        return <div>{industry ? industry.label : val}</div>;
+      },
     },
+
     {
-      title: "Modelo IA",
-      dataIndex: "modelIA",
-      key: "modelIA",
+      title: "Ações",
+      width: 20,
+      render: (val, row) => {
+        return (
+          <Dropdown style={{width: "200px"}} overlay={actionMenu} trigger={["click"]}>
+            <Button><FaEllipsisV />
+            </Button>
+          </Dropdown>
+        );
+      },
     },
   ];
 

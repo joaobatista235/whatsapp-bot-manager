@@ -1,13 +1,31 @@
 import { Box, IconButton, Link, VStack } from "@chakra-ui/react";
-import { FaHome, FaSignOutAlt } from "react-icons/fa";
-import { NavLink } from "react-router-dom";
+import {
+  FaBezierCurve,
+  FaCalendarAlt,
+  FaHome,
+  FaPortrait,
+  FaSignOutAlt,
+  FaWrench,
+} from "react-icons/fa";
+import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../../redux/models/authSlice";
+import { Div } from "../../styles/style";
+import { Avatar } from "antd";
+import { UserOutlined } from '@ant-design/icons';
 
-const SidebarItem = ({ icon, label, to, onClick }) => (
+const SidebarItem = ({ icon, label, to, onClick }) => {
+  const location = useLocation();
+  const isActive = location.pathname === to; 
+
+  console.log(location.pathname === to);
+  
+  
+  return (
   <Box
     width="100%"
     borderRadius="4px"
+    bg={isActive?"#003e51":null}
     _hover={{
       bg: "#003e51",
       transition: "0.32s",
@@ -32,7 +50,7 @@ const SidebarItem = ({ icon, label, to, onClick }) => (
       </Link>
     </NavLink>
   </Box>
-);
+)};
 
 const Sidebar = () => {
   const dispatch = useDispatch();
@@ -51,7 +69,19 @@ const Sidebar = () => {
       py="5"
     >
       <VStack spacing={2} align="start">
+        <Div $fullWidth justify="center" margin="0 0 24px 0">
+          <Avatar size={64} icon={<UserOutlined />} />
+        </Div>
         <SidebarItem icon={<FaHome />} label="Dashboard" to="/dashboard" />
+        <SidebarItem icon={<FaPortrait />} label="Contatos" to="/contacts" />
+        <SidebarItem icon={<FaCalendarAlt />} label="Agenda" to="/agenda" />
+        <SidebarItem icon={<FaBezierCurve />} label="Fluxos" to="/flow" />
+
+        <SidebarItem
+          icon={<FaWrench />}
+          label="Configurações"
+          to="/settings"
+        />
         <SidebarItem
           icon={<FaSignOutAlt />}
           label="Logout"

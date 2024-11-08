@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-import { Radio, Select, Typography, Input } from "antd";
+import { Radio, Select, Typography, Input, Modal } from "antd";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -11,46 +11,15 @@ import {
   FormControl,
   FormLabel,
   Image,
-  Spinner,
-  Center,
   Button,
   ButtonGroup,
   Tooltip,
 } from "@chakra-ui/react";
 import { Div } from "../../styles/style";
 import useViewport from "../../_Hooks/useViewPort";
+import { chatGptModelOptions, comunicationOptions, industryOptions, objectiveOptions } from "../../../../backend/src/assets/enumHelper";
 
 function AgentSignUp() {
-  const industryOptions = [
-    { value: "agronegocio", label: "Agronegócio" },
-    { value: "automotivo", label: "Automotivo" },
-    { value: "tecnologia", label: "Tecnologia" },
-    { value: "construcao_civil", label: "Construção Civil" },
-    { value: "educacao", label: "Educação" },
-    { value: "energia_utilidades", label: "Energia e Utilidades" },
-    { value: "financeiro", label: "Financeiro" },
-    { value: "saude_farmaceutico", label: "Saúde e Farmacêutico" },
-    { value: "varejo_comercio", label: "Varejo e Comércio" },
-    { value: "servicos", label: "Serviços" },
-    { value: "telecomunicacoes", label: "Telecomunicações" },
-    { value: "transporte_logistica", label: "Transporte e Logística" },
-    { value: "turismo_hotelaria", label: "Turismo e Hotelaria" },
-    { value: "alimenticio_bebidas", label: "Alimentício e Bebidas" },
-    { value: "imobiliario", label: "Imobiliário" },
-    { value: "seguros", label: "Seguros" },
-    { value: "midia_entretenimento", label: "Mídia e Entretenimento" },
-    { value: "mineracao", label: "Mineração" },
-    { value: "quimico", label: "Químico" },
-    { value: "textil_vestuario", label: "Têxtil e Vestuário" },
-  ];
-
-  const chatGptModelOptions = [
-    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-    { value: "gpt-3.5-turbo-16k", label: "GPT-3.5 Turbo 16K" },
-    { value: "gpt-4", label: "GPT-4" },
-    { value: "gpt-4-32k", label: "GPT-4 32K" },
-  ];
-
   const [qrCode, setQrCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -63,6 +32,7 @@ function AgentSignUp() {
     nameAgent: "",
     sector: industryOptions[0].value,
   });
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { isMobile } = useViewport(window.innerWidth);
   const _isMobile = isMobile();
   const navigate = useNavigate();
@@ -73,25 +43,6 @@ function AgentSignUp() {
       ...formData,
       [name]: value,
     });
-  };
-
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.post(
-        "http://localhost:3000/api/create-bot",
-        {
-          ...formData,
-        }
-      );
-      setQrCode(response.data.qrcode);
-      setLoading(false);
-    } catch (error) {
-      console.error(
-        "Erro ao criar bot:",
-        error.response ? error.response.data : error.message
-      );
-    }
   };
 
   const contextTooltip = (
@@ -115,19 +66,48 @@ function AgentSignUp() {
       </Div>
     </Div>
   );
+
+  const handleOk = () => {
+    navigate(-1);
+  };
+
+  const handleCancel = () => {
+    navigate(-1);
+  };
+
+  const handleSubmit = async () => {
+    setIsModalOpen(true);
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "http://localhost:3000/api/create-bot",
+        {
+          ...formData,
+        }
+      );
+      setQrCode(response.data.qrcode);
+      setLoading(false);
+    } catch (error) {
+      console.error(
+        "Erro ao criar bot:",
+        error.response ? error.response.data : error.message
+      );
+    }
+  };
+
   return (
     <Div direction="column" gap={"16px"}>
       <Div
         direction="column"
         align="left"
-        width="60%"
+        width="100%"
         margin={"0 auto"}
         padding={"24px 32px"}
         $borderRadius="8px"
         $backgroundColor="white"
       >
         <Title level={2}>Agentes de IA</Title>
-        <Text>
+        <Text style={{ textAlign: "justify" }}>
           Aqui você consegue criar, configurar e treinar os seus agentes de IA.
           Lembrando que o agente IA é um especialista; portanto, se a tarefa
           dele for mais específica, provavelmente ele terá um nível de acertos
@@ -137,7 +117,7 @@ function AgentSignUp() {
       <Div
         direction="column"
         align="left"
-        width="60%"
+        width="100%"
         margin={"0 auto"}
         padding={"24px 32px"}
         $borderRadius="8px"
@@ -181,8 +161,9 @@ function AgentSignUp() {
                 value={formData.objective}
                 onChange={handleInputChange}
               >
-                <Radio.Button value="sale">Venda</Radio.Button>
-                <Radio.Button value="suport">Suporte</Radio.Button>
+                {objectiveOptions.map(({ value, label }, i) => (
+                  <Radio.Button value={value}>{label}</Radio.Button>
+                ))}
               </Radio.Group>
             </FormControl>
 
@@ -194,9 +175,9 @@ function AgentSignUp() {
                 value={formData.communication}
                 onChange={handleInputChange}
               >
-                <Radio.Button value="normal">Normal</Radio.Button>
-                <Radio.Button value="formal">Formal</Radio.Button>
-                <Radio.Button value="relaxed">Descontraído</Radio.Button>
+                {comunicationOptions.map(({ value, label }, i) => (
+                  <Radio.Button value={value}>{label}</Radio.Button>
+                ))}
               </Radio.Group>
             </FormControl>
           </Div>
@@ -238,7 +219,6 @@ function AgentSignUp() {
               name="context"
               value={formData.context}
               onChange={handleInputChange}
-              rows={10}
             />
           </FormControl>
           <FormControl isRequired>
@@ -250,23 +230,37 @@ function AgentSignUp() {
               onChange={handleInputChange}
             />
           </FormControl>
-          {qrCode && (
-            <FormControl>
-              <FormLabel>QR Code:</FormLabel>
-              <Center>
-                {loading ? (
-                  <Spinner
-                    thickness="4px"
-                    speed="0.65s"
-                    emptyColor="gray.200"
-                    color="blue.500"
-                    size="xl"
-                  />
-                ) : (
-                  qrCode && <Image src={`${qrCode}`} alt="QR Code" />
+          {isModalOpen && (
+            <Modal
+              title="QR Code"
+              open={isModalOpen}
+              loading={loading}
+              footer={null}
+              onCancel={() => navigate(-1)}
+            >
+              <Div
+                $fullWidth
+                margin="32px 0  0 0"
+                direction="column"
+                justify="center"
+                gap="32px"
+              >
+                {qrCode && (
+                  <>
+                    <Image src={`${qrCode}`} alt="QR Code" />{" "}
+                    <Text
+                      style={{ textAlign: "center", fontWeight: "bold" }}
+                      s
+                      strong={true}
+                    >
+                      Para conectarmos o agente, abra o WhatsApp no seu celular,
+                      vá em Aparelhos Conectados, toque em Conectar um Aparelho
+                      e escaneie o QR code exibido na tela.
+                    </Text>
+                  </>
                 )}
-              </Center>
-            </FormControl>
+              </Div>
+            </Modal>
           )}
           <FormControl>
             <ButtonGroup width={"100%"} justifyContent={"space-between"}>

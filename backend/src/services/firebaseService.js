@@ -1,13 +1,13 @@
 const db = require("../config/firebaseConfig");
 
 exports.saveBotData = async (companyName, botData) => {
-  const botDocRef = db.collection("whatsapp-agents").doc(companyName);
+  const botDocRef = db.collection("agents").doc(companyName);
   return botDocRef.set(botData);
 };
 
 exports.getActiveBots = async () => {
   const snapshot = await db
-    .collection("whatsapp-agents")
+    .collection("agents")
     .where("isActive", "==", true)
     .get();
   return snapshot.docs.map((doc) => doc.data());
@@ -15,7 +15,7 @@ exports.getActiveBots = async () => {
 
 exports.deleteBotData = async (nameCompany) => {
   try {
-    const botQuery = db.collection("whatsapp-agents").where("nameCompany", "==", nameCompany);
+    const botQuery = db.collection("agents").where("nameCompany", "==", nameCompany);
     const querySnapshot = await botQuery.get();
 
     if (querySnapshot.empty) {

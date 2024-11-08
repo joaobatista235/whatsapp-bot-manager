@@ -12,9 +12,20 @@ const App = () => {
   useAuth();
   return (
     <Router>
-      <ToastContainer />
+      <ToastContainer position="bottom-right" />
       <Routes>
-        <Route path="*" element={<p>page not found</p>} />
+
+      <Route
+          path="*"
+          element={
+            <WithSideBar>
+              <PrivateRoute>
+              <p>page not found</p>
+              </PrivateRoute>
+            </WithSideBar>
+          }
+        />
+       
         <Route
           path="/"
           element={
@@ -51,16 +62,7 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/agentSignUp"
-          element={
-            <WithSideBar>
-              <PrivateRoute>
-                <AgentSignUp />
-              </PrivateRoute>
-            </WithSideBar>
-          }
-        />
+       
       </Routes>
     </Router>
   );
