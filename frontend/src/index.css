@@ -47,3 +47,28 @@ table {
 	
 	height: 100vh;
 }
+
+
+/* Adicione estas regras no seu arquivo de estilo ou em um bloco <style> no seu arquivo JSX */
+
+/* Cor sólida mais escura para a Pessoa 1 */
+.pessoa1-evento {
+	background-color: #C0392B !important; /* Cor mais escura para a Pessoa 1 */
+	color: white !important; /* Garantir que o texto seja branco */
+	background: #C0392B !important; /* Garante que não haja gradiente */
+  }
+  
+  /* Cor sólida mais escura para a Pessoa 2 */
+  .pessoa2-evento {
+	background-color: #27AE60 !important; /* Cor mais escura para a Pessoa 2 */
+	color: white !important; /* Garantir que o texto seja branco */
+	background: #27AE60 !important; /* Garante que não haja gradiente */
+  }
+  
+  /* Cor sólida mais escura para a Pessoa 3 */
+  .pessoa3-evento {
+	background-color: #2980B9 !important; /* Cor mais escura para a Pessoa 3 */
+	color: white !important; /* Garantir que o texto seja branco */
+	background: #2980B9 !important; /* Garante que não haja gradiente */
+  }
+  

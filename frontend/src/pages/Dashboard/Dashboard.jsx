@@ -9,7 +9,6 @@ import {
   objectiveOptions,
 } from "../../../../backend/src/assets/enumHelper";
 import {
-  AiOutlineBars,
   AiOutlineDelete,
   AiOutlineEdit,
   AiOutlineFileText,
@@ -29,14 +28,26 @@ const Dashboard = () => {
 
   const actionMenu = (
     <Menu>
-      <Menu.Item disabled icon={<AiOutlineEdit />} key="1">
+      <Menu.Item
+        onClick={() => alert("Funcionalidade em desenvolvimento")}
+        icon={<AiOutlineEdit />}
+        key="1"
+      >
         Editar
       </Menu.Item>
 
-      <Menu.Item disabled icon={<AiOutlineFileText />} key="3">
+      <Menu.Item
+        onClick={() => alert("Funcionalidade em desenvolvimento")}
+        icon={<AiOutlineFileText />}
+        key="3"
+      >
         Visualizar
       </Menu.Item>
-      <Menu.Item disabled icon={<AiOutlineDelete />} key="2">
+      <Menu.Item
+        onClick={() => alert("Funcionalidade em desenvolvimento")}
+        icon={<AiOutlineDelete />}
+        key="2"
+      >
         Excluir
       </Menu.Item>
     </Menu>
@@ -95,9 +106,12 @@ const Dashboard = () => {
       width: 20,
       render: (val, row) => {
         return (
-          <Dropdown style={{width: "200px"}} overlay={actionMenu} trigger={["click"]}>
-            <Button><FaEllipsisV />
-            </Button>
+          <Dropdown
+            style={{ width: "200px" }}
+            overlay={actionMenu}
+            trigger={["click"]}
+          >
+            <FaEllipsisV />
           </Dropdown>
         );
       },

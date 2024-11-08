@@ -17,7 +17,12 @@ import {
 } from "@chakra-ui/react";
 import { Div } from "../../styles/style";
 import useViewport from "../../_Hooks/useViewPort";
-import { chatGptModelOptions, comunicationOptions, industryOptions, objectiveOptions } from "../../../../backend/src/assets/enumHelper";
+import {
+  chatGptModelOptions,
+  comunicationOptions,
+  industryOptions,
+  objectiveOptions,
+} from "../../../../backend/src/assets/enumHelper";
 
 function AgentSignUp() {
   const [qrCode, setQrCode] = useState("");
@@ -96,7 +101,7 @@ function AgentSignUp() {
   };
 
   return (
-    <Div direction="column" gap={"16px"}>
+    <Div direction="column" $fullHeight gap={"16px"}>
       <Div
         direction="column"
         align="left"
@@ -119,7 +124,9 @@ function AgentSignUp() {
         align="left"
         width="100%"
         margin={"0 auto"}
+        $fullHeight
         padding={"24px 32px"}
+        height={"calc(100% - 100px)"}
         $borderRadius="8px"
         $backgroundColor="white"
       >
@@ -127,6 +134,7 @@ function AgentSignUp() {
           direction="column"
           width={_isMobile ? "calc(100% - 32px)" : "100%"}
           gap="16px"
+          $fullHeight
         >
           <Div $fullWidth gap="32px">
             <FormControl isRequired>
@@ -206,7 +214,7 @@ function AgentSignUp() {
             </FormControl>
           </Div>
 
-          <FormControl isRequired>
+          <FormControl style={{ height: "100%" }} isRequired>
             <Tooltip
               borderRadius={"8px"}
               placement="left-start"
@@ -217,6 +225,7 @@ function AgentSignUp() {
             <TextArea
               placeholder="Descreva o contexto aqui..."
               name="context"
+              style={{ height: "calc(100% - 32px)" }}
               value={formData.context}
               onChange={handleInputChange}
             />

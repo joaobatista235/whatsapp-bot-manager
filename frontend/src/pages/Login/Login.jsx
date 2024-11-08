@@ -15,6 +15,9 @@ import { BsEyeSlash } from "react-icons/bs";
 import { BsEyeSlashFill } from "react-icons/bs";
 import { Div } from "../../styles/style";
 import { TODO } from "./style";
+import { Typography } from "antd";
+
+const { Text, Title } = Typography;
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -43,7 +46,7 @@ const Login = () => {
       $fullHeight
       justify={"center"}
       align={"center"}
-      $backgroundColor={"#026887"}
+      $backgroundColor={"#e2e8f0"}
     >
       <TODO
         direction={"column"}
@@ -52,7 +55,9 @@ const Login = () => {
         padding={"32px"}
         $backgroundColor={"white"}
       >
-        <h2 style={{ fontWeight: "bold", fontSize: "2rem" }}>Logar</h2>
+        <Title style={{ fontWeigh: "700" }} align level={2}>
+          Login
+        </Title>
 
         <FormControl>
           <FormLabel>Email</FormLabel>
@@ -76,9 +81,15 @@ const Login = () => {
             />
             <InputRightElement width="4.5rem">
               {show ? (
-                <BsEyeSlash onClick={() => setShow((prev) => !prev)} cursor="pointer" />
+                <BsEyeSlash
+                  onClick={() => setShow((prev) => !prev)}
+                  cursor="pointer"
+                />
               ) : (
-                <BsEyeSlashFill onClick={() => setShow((prev) => !prev)} cursor="pointer" />
+                <BsEyeSlashFill
+                  onClick={() => setShow((prev) => !prev)}
+                  cursor="pointer"
+                />
               )}
             </InputRightElement>
           </InputGroup>

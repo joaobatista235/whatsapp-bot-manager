@@ -2,6 +2,7 @@ import { Box, IconButton, Link, VStack } from "@chakra-ui/react";
 import {
   FaBezierCurve,
   FaCalendarAlt,
+  FaCommentDots,
   FaHome,
   FaPortrait,
   FaSignOutAlt,
@@ -12,45 +13,45 @@ import { useDispatch } from "react-redux";
 import { logout } from "../../redux/models/authSlice";
 import { Div } from "../../styles/style";
 import { Avatar } from "antd";
-import { UserOutlined } from '@ant-design/icons';
+import { UserOutlined } from "@ant-design/icons";
 
 const SidebarItem = ({ icon, label, to, onClick }) => {
   const location = useLocation();
-  const isActive = location.pathname === to; 
+  const isActive = location.pathname === to;
 
   console.log(location.pathname === to);
-  
-  
+
   return (
-  <Box
-    width="100%"
-    borderRadius="4px"
-    bg={isActive?"#003e51":null}
-    _hover={{
-      bg: "#003e51",
-      transition: "0.32s",
-    }}
-    display="flex"
-    alignItems="center"
-  >
-    <NavLink
-      to={to}
-      onClick={onClick}
-      style={{ display: "flex", alignItems: "center", width: "100%" }}
+    <Box
+      width="100%"
+      borderRadius="4px"
+      bg={isActive ? "#003e51" : null}
+      _hover={{
+        bg: "#003e51",
+        transition: "0.32s",
+      }}
+      display="flex"
+      alignItems="center"
     >
-      <IconButton
-        _hover={{}}
-        icon={icon}
-        aria-label={label}
-        variant="ghost"
-        color="white"
-      />
-      <Link ml={2} style={{ textDecoration: "none" }} color="white">
-        {label}
-      </Link>
-    </NavLink>
-  </Box>
-)};
+      <NavLink
+        to={to}
+        onClick={onClick}
+        style={{ display: "flex", alignItems: "center", width: "100%" }}
+      >
+        <IconButton
+          _hover={{}}
+          icon={icon}
+          aria-label={label}
+          variant="ghost"
+          color="white"
+        />
+        <Link ml={2} style={{ textDecoration: "none" }} color="white">
+          {label}
+        </Link>
+      </NavLink>
+    </Box>
+  );
+};
 
 const Sidebar = () => {
   const dispatch = useDispatch();
@@ -73,15 +74,12 @@ const Sidebar = () => {
           <Avatar size={64} icon={<UserOutlined />} />
         </Div>
         <SidebarItem icon={<FaHome />} label="Dashboard" to="/dashboard" />
+        <SidebarItem icon={<FaCommentDots />} label="Conversas" to="/chats" />
         <SidebarItem icon={<FaPortrait />} label="Contatos" to="/contacts" />
         <SidebarItem icon={<FaCalendarAlt />} label="Agenda" to="/agenda" />
         <SidebarItem icon={<FaBezierCurve />} label="Fluxos" to="/flow" />
 
-        <SidebarItem
-          icon={<FaWrench />}
-          label="Configurações"
-          to="/settings"
-        />
+        <SidebarItem icon={<FaWrench />} label="Configurações" to="/settings" />
         <SidebarItem
           icon={<FaSignOutAlt />}
           label="Logout"
