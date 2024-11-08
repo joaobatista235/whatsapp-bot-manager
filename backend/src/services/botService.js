@@ -15,6 +15,10 @@ const getTokenFilePath = (nameCompany) => {
   );
 };
 
+function normalizeText(text) {
+  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 exports.createBotForCompany = async ({
   nameCompany,
   context,
@@ -27,26 +31,24 @@ exports.createBotForCompany = async ({
   createdAt,
   updatedAt,
 }) => {
-  console.log("Iniciando criação do bot...");
+  const botData = {
+    nameCompany: normalizeText(nameCompany),
+    context: normalizeText(context),
+    objective: normalizeText(objective),
+    communication: normalizeText(communication),
+    nameAgent: normalizeText(nameAgent),
+    sector: normalizeText(sector),
+    apiKey,
+    modelIA,
+    createdAt,
+    updatedAt,
+    isActive: true,
+  };
   return new Promise((resolve, reject) => {
     venom
       .create(
         `session-${nameCompany}`,
         (base64Qrimg) => {
-          const botData = {
-            nameCompany,
-            context,
-            apiKey,
-            modelIA,
-            objective,
-            communication,
-            nameAgent,
-            sector,
-            createdAt,
-            updatedAt,
-            isActive: true,
-          };
-          console.log("Salvando dados do bot...");
           saveBotData(nameCompany, botData)
             .then(() => {
               resolve(base64Qrimg);
@@ -57,7 +59,7 @@ exports.createBotForCompany = async ({
             });
         },
         (statusSession) => console.log("Status Session: ", statusSession),
-        { logQR: true, createPathFileToken: false }
+        { logQR: true }
       )
       .then((client) => {
         console.log("Iniciando o bot...");
@@ -108,10 +110,6 @@ exports.startAllBots = async () => {
 };
 
 async function startBot(client, data) {
-  console.log("startando bot");
-  console.log(client);
-  console.log(data);
-
   if (!client) throw new Error("Falha ao criar a sessão do Venom.");
 
   client.onMessage(async (message) => {
@@ -145,7 +143,7 @@ async function handleMessage(data, message) {
         {
           role: "system",
           content: `
-          Você é um agente de IA chamado "${data.nameAgent}", um assistente virtual oficial da empresa "${data.nameCompany}".
+          Você é um agente de IA chamado ${data.nameAgent}, um assistente virtual oficial da empresa ${data.nameCompany}.
           Seu principal objetivo é ajudar com: ${data.objective}.
           Comunicação ideal: ${data.communication}.
 
