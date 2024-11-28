@@ -11,6 +11,7 @@ import Agenda from "./pages/Agenda";
 import Flow from "./pages/Flow";
 import Concat from "./pages/Concat";
 import Chat from "./pages/Chat";
+import Time from "./pages/Time";
 
 const App = () => {
   useAuth();
@@ -104,6 +105,17 @@ const App = () => {
             <PrivateRoute>
               <WithSideBar>
                 <Chat />
+              </WithSideBar>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/time"
+          element={
+            <PrivateRoute>
+              <WithSideBar>
+                <Time />
               </WithSideBar>
             </PrivateRoute>
           }

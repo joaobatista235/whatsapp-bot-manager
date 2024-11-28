@@ -1,8 +1,7 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
-import { Radio, Select, Typography, Input, Modal } from "antd";
+import { Radio, Select, Typography, Input, Spin } from "antd";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -10,43 +9,71 @@ const { TextArea } = Input;
 import {
   FormControl,
   FormLabel,
-  Image,
   Button,
   ButtonGroup,
   Tooltip,
 } from "@chakra-ui/react";
+
 import { Div } from "../../styles/style";
-import useViewport from "../../_Hooks/useViewPort";
 import {
-  chatGptModelOptions,
   comunicationOptions,
   industryOptions,
   objectiveOptions,
-} from "../../../../backend/src/assets/enumHelper";
+} from "../../assets/enumHelper.js";
+import useApiRequest from "../../_Hooks/useApiRequest.js";
+import { getAgentById } from "../../services/agent.js";
 
 function AgentSignUp() {
-  const [qrCode, setQrCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    nameCompany: "",
+    companyName: "",
     context: "",
-    apiKey: "",
-    modelIA: chatGptModelOptions[0].value,
-    objective: "sale",
-    communication: "normal",
-    nameAgent: "",
+    objective: objectiveOptions[0].value,
+    communication: comunicationOptions[0].value,
+    name: "",
     sector: industryOptions[0].value,
   });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const { isMobile } = useViewport(window.innerWidth);
-  const _isMobile = isMobile();
+
   const navigate = useNavigate();
+  const location = useLocation();
+  const myParam = location?.state?.id;
+
+  useEffect(() => {
+    if (!myParam) return;
+    getAgentById(myParam).then((agent) => {
+      setFormData({
+        companyName: agent?.companyName,
+        context: agent?.context,
+        objective: agent?.objective,
+        communication: agent?.communication,
+        name: agent?.name,
+        sector: agent?.sector,
+        ...agent,
+      });
+    });
+  }, [myParam]);
+
+  const { handleCreate, handleUpdate } = useApiRequest({
+    endpoint: "agent",
+    showToast: true,
+    message: myParam ? "Atualizado com sucesso!" : "Criado com sucesso!",
+  });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
+    });
+  };
+
+  const handleSubmit = () => {
+    setLoading(true);
+
+    const fn = myParam ? handleUpdate : handleCreate;
+    fn({ ...formData }).then((response) => {
+      setLoading(false);
+      navigate(-1);
     });
   };
 
@@ -60,7 +87,6 @@ function AgentSignUp() {
         o atendimento. Quanto mais detalhado o contexto, mais eficaz e alinhada
         será a resposta da IA às necessidades dos clientes.
       </Div>
-
       <Div>
         Exemplo: "A IA deve atender clientes interessados em serviços de suporte
         técnico para dispositivos eletrônicos. O tom deve ser amigável e
@@ -71,34 +97,6 @@ function AgentSignUp() {
       </Div>
     </Div>
   );
-
-  const handleOk = () => {
-    navigate(-1);
-  };
-
-  const handleCancel = () => {
-    navigate(-1);
-  };
-
-  const handleSubmit = async () => {
-    setIsModalOpen(true);
-    try {
-      setLoading(true);
-      const response = await axios.post(
-        "http://localhost:3000/api/create-bot",
-        {
-          ...formData,
-        }
-      );
-      setQrCode(response.data.qrcode);
-      setLoading(false);
-    } catch (error) {
-      console.error(
-        "Erro ao criar bot:",
-        error.response ? error.response.data : error.message
-      );
-    }
-  };
 
   return (
     <Div direction="column" $fullHeight gap={"16px"}>
@@ -119,6 +117,7 @@ function AgentSignUp() {
           em um tempo menor.
         </Text>
       </Div>
+
       <Div
         direction="column"
         align="left"
@@ -130,32 +129,15 @@ function AgentSignUp() {
         $borderRadius="8px"
         $backgroundColor="white"
       >
-        <Div
-          direction="column"
-          width={_isMobile ? "calc(100% - 32px)" : "100%"}
-          gap="16px"
-          $fullHeight
-        >
+        <Div direction="column" width={"100%"} gap="16px" $fullHeight>
           <Div $fullWidth gap="32px">
             <FormControl isRequired>
               <FormLabel>Nome do Agente</FormLabel>
               <Input
                 placeholder="Nome do Agente"
-                name="nameAgent"
-                value={formData.nameAgent}
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
-              />
-            </FormControl>
-
-            <FormControl isRequired>
-              <FormLabel>Modelo de IA</FormLabel>
-              <Select
-                onChange={handleInputChange}
-                defaultValue={formData.modelIA}
-                style={{
-                  width: "100%",
-                }}
-                options={chatGptModelOptions}
               />
             </FormControl>
           </Div>
@@ -195,8 +177,8 @@ function AgentSignUp() {
               <FormLabel>Nome da Empresa</FormLabel>
               <Input
                 placeholder="Nome da Empresa"
-                name="nameCompany"
-                value={formData.nameCompany}
+                name="companyName"
+                value={formData.companyName}
                 onChange={handleInputChange}
               />
             </FormControl>
@@ -206,20 +188,20 @@ function AgentSignUp() {
               <Select
                 name="sector"
                 defaultValue={formData.sector}
+                value={formData.sector}
                 style={{
                   width: "100%",
                 }}
                 options={industryOptions}
+                onChange={(value) =>
+                  handleInputChange({ target: { name: "sector", value } })
+                }
               />
             </FormControl>
           </Div>
 
           <FormControl style={{ height: "100%" }} isRequired>
-            <Tooltip
-              borderRadius={"8px"}
-              placement="left-start"
-              label={contextTooltip}
-            >
+            <Tooltip borderRadius={"8px"} label={contextTooltip}>
               <FormLabel>Contexto</FormLabel>
             </Tooltip>
             <TextArea
@@ -230,57 +212,17 @@ function AgentSignUp() {
               onChange={handleInputChange}
             />
           </FormControl>
-          <FormControl isRequired>
-            <FormLabel>Chave da OpenAI API</FormLabel>
-            <Input
-              placeholder="Chave da OpenAI API"
-              name="apiKey"
-              value={formData.chaveAPI}
-              onChange={handleInputChange}
-            />
-          </FormControl>
-          {isModalOpen && (
-            <Modal
-              title="QR Code"
-              open={isModalOpen}
-              loading={loading}
-              footer={null}
-              onCancel={() => navigate(-1)}
-            >
-              <Div
-                $fullWidth
-                margin="32px 0  0 0"
-                direction="column"
-                justify="center"
-                gap="32px"
-              >
-                {qrCode && (
-                  <>
-                    <Image src={`${qrCode}`} alt="QR Code" />{" "}
-                    <Text
-                      style={{ textAlign: "center", fontWeight: "bold" }}
-                      s
-                      strong={true}
-                    >
-                      Para conectarmos o agente, abra o WhatsApp no seu celular,
-                      vá em Aparelhos Conectados, toque em Conectar um Aparelho
-                      e escaneie o QR code exibido na tela.
-                    </Text>
-                  </>
-                )}
-              </Div>
-            </Modal>
-          )}
           <FormControl>
-            <ButtonGroup width={"100%"} justifyContent={"space-between"}>
-              <Button onClick={() => navigate(-1)} colorScheme="gray">
-                Voltar
-              </Button>
-
-              <Button onClick={handleSubmit} colorScheme="green">
-                Avançar
-              </Button>
-            </ButtonGroup>
+            <Spin spinning={loading} style={{ width: "100%", height: "100%" }}>
+              <ButtonGroup width={"100%"} justifyContent={"space-between"}>
+                <Button onClick={() => navigate(-1)} colorScheme="gray">
+                  Voltar
+                </Button>
+                <Button onClick={handleSubmit} colorScheme="green">
+                  {myParam ? "Atualizar" : "Criar"}
+                </Button>
+              </ButtonGroup>
+            </Spin>
           </FormControl>
         </Div>
       </Div>

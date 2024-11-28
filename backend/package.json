@@ -1,7 +1,8 @@
 {
   "name": "create-bot",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "app/index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,8 +12,10 @@
   "dependencies": {
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "firebase-admin": "^12.6.0",
+    "googleapis": "^144.0.0",
     "openai": "^4.67.3",
     "venom-bot": "^5.1.0"
   }

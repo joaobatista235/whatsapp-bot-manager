@@ -7,6 +7,7 @@ import {
   FaPortrait,
   FaSignOutAlt,
   FaWrench,
+  FaUserFriends,
 } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -18,8 +19,6 @@ import { UserOutlined } from "@ant-design/icons";
 const SidebarItem = ({ icon, label, to, onClick }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
-
-  console.log(location.pathname === to);
 
   return (
     <Box
@@ -74,12 +73,17 @@ const Sidebar = () => {
           <Avatar size={64} icon={<UserOutlined />} />
         </Div>
         <SidebarItem icon={<FaHome />} label="Dashboard" to="/dashboard" />
-        <SidebarItem icon={<FaCommentDots />} label="Conversas" to="/chats" />
+
+        {/* 
+        <SidebarItem
+          icon={<FaUserFriends />}
+          label="Profissionais"
+          to="/time"
+        /> <SidebarItem icon={<FaCommentDots />} label="Conversas" to="/chats" />
         <SidebarItem icon={<FaPortrait />} label="Contatos" to="/contacts" />
         <SidebarItem icon={<FaCalendarAlt />} label="Agenda" to="/agenda" />
         <SidebarItem icon={<FaBezierCurve />} label="Fluxos" to="/flow" />
-
-        <SidebarItem icon={<FaWrench />} label="Configurações" to="/settings" />
+        <SidebarItem icon={<FaWrench />} label="Configurações" to="/settings" /> */}
         <SidebarItem
           icon={<FaSignOutAlt />}
           label="Logout"

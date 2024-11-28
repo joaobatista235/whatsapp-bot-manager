@@ -1,126 +1,80 @@
 import React, { useEffect, useState } from "react";
-import { Button, Dropdown, Menu, Table, Typography } from "antd";
+import { Button, Dropdown, Image, Menu, Modal, Table, Typography } from "antd";
 import { Div } from "../../styles/style";
 import { useNavigate } from "react-router-dom";
 import { getAgents } from "../../services/agent";
-import {
-  comunicationOptions,
-  industryOptions,
-  objectiveOptions,
-} from "../../../../backend/src/assets/enumHelper";
-import {
-  AiOutlineDelete,
-  AiOutlineEdit,
-  AiOutlineFileText,
-} from "react-icons/ai";
-import { FaEllipsisV } from "react-icons/fa";
+import useApiRequest from "../../_Hooks/useApiRequest.js";
+import { DashboardColumns } from "./DashboardColumns.jsx";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const Dashboard = () => {
   const [list, setList] = useState([]);
-  useEffect(() => {
+  const [qrCode, setQrCode] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+
+  const { handleDelete: deleteAgent } = useApiRequest({
+    endpoint: "agent",
+    showToast: true,
+    message: "Deletado com sucesso !",
+  });
+
+  const { handleUpdate: startAgent } = useApiRequest({
+    endpoint: "agent/startAgent",
+    showToast: true,
+    message: "Ativado com sucesso !",
+  });
+
+  const { handleUpdate: stopAgent } = useApiRequest({
+    endpoint: "agent/stopAgent",
+    showToast: true,
+    message: "Inativo com sucesso !",
+  });
+
+  const handleLoad = () => {
     getAgents().then((data) => {
-      console.log(data);
       setList(data);
     });
+  };
+
+  useEffect(() => {
+    handleLoad();
   }, []);
 
-  const actionMenu = (
-    <Menu>
-      <Menu.Item
-        onClick={() => alert("Funcionalidade em desenvolvimento")}
-        icon={<AiOutlineEdit />}
-        key="1"
-      >
-        Editar
-      </Menu.Item>
-
-      <Menu.Item
-        onClick={() => alert("Funcionalidade em desenvolvimento")}
-        icon={<AiOutlineFileText />}
-        key="3"
-      >
-        Visualizar
-      </Menu.Item>
-      <Menu.Item
-        onClick={() => alert("Funcionalidade em desenvolvimento")}
-        icon={<AiOutlineDelete />}
-        key="2"
-      >
-        Excluir
-      </Menu.Item>
-    </Menu>
-  );
-
-  const columns = [
-    {
-      title: "Nome do Agente",
-      dataIndex: "nameAgent",
-      key: "nameAgent",
-    },
-    {
-      title: "Objetivo",
-      dataIndex: "objective",
-      key: "objective",
-
-      render: (val, row) => {
-        const objective = objectiveOptions.find(
-          (option) => option.value === val
-        );
-
-        return <div>{objective ? objective.label : val}</div>;
-      },
-    },
-    {
-      title: "Comunicação",
-      dataIndex: "communication",
-      key: "communication",
-
-      render: (val, row) => {
-        const comunication = comunicationOptions.find(
-          (option) => option.value === val
-        );
-
-        return <div>{comunication ? comunication.label : val}</div>;
-      },
-    },
-    {
-      title: "Empresa",
-      dataIndex: "nameCompany",
-      key: "nameCompany",
-    },
-    {
-      title: "Setor",
-      dataIndex: "sector",
-      key: "sector",
-      render: (val, row) => {
-        const industry = industryOptions.find((option) => option.value === val);
-
-        return <div>{industry ? industry.label : val}</div>;
-      },
-    },
-
-    {
-      title: "Ações",
-      width: 20,
-      render: (val, row) => {
-        return (
-          <Dropdown
-            style={{ width: "200px" }}
-            overlay={actionMenu}
-            trigger={["click"]}
-          >
-            <FaEllipsisV />
-          </Dropdown>
-        );
-      },
-    },
-  ];
+  const updateAgent = (row) => {
+    const activate = !row?.status;
+    if (activate) {
+      setIsModalOpen(true);
+      setModalLoading(true);
+    }
+    const fn = activate ? startAgent : stopAgent;
+    fn({ id: row.id }).then((resp) => {
+      if (!activate) {
+        handleLoad();
+        return;
+      }
+      setQrCode(resp?.qrcode);
+      setModalLoading(false);
+    });
+  };
 
   const navigate = useNavigate();
-  const handleNewAgent = () => {
-    navigate("/agentSignUp");
+  const _columns = DashboardColumns({
+    deleteAgent,
+    handleLoad,
+    updateAgent,
+  });
+
+  const handleLogin = () => {
+    fetch("http://localhost:3000/")
+      .then((response) => response.json())
+      .then((data) => {
+        window.location.href = data.url;
+      })
+      .catch((error) =>
+        console.error("Erro ao redirecionar para o Google", error)
+      );
   };
 
   return (
@@ -129,8 +83,9 @@ const Dashboard = () => {
         <Title align level={2}>
           Lista de Agentes
         </Title>
+        <Button onClick={handleLogin}>Login com Google</Button>
         <Button
-          onClick={handleNewAgent}
+          onClick={() => navigate("/agentSignUp")}
           size="large"
           style={{
             fontWeight: "600",
@@ -142,18 +97,54 @@ const Dashboard = () => {
         </Button>
       </Div>
       <Div $fullWidth>
+        {isModalOpen && (
+          <Modal
+            title="QR Code"
+            open={isModalOpen}
+            loading={modalLoading}
+            footer={null}
+            onCancel={() => {
+              setIsModalOpen(false);
+              handleLoad();
+            }}
+          >
+            <Div
+              $fullWidth
+              margin="32px 0  0 0"
+              direction="column"
+              justify="center"
+              gap="32px"
+            >
+              {qrCode && (
+                <>
+                  <Image src={`${qrCode}`} alt="QR Code" />{" "}
+                  <Text
+                    style={{ textAlign: "center", fontWeight: "bold" }}
+                    strong={true}
+                  >
+                    Para conectarmos o agente, abra o WhatsApp no seu celular,
+                    vá em Aparelhos Conectados, toque em Conectar um Aparelho e
+                    escaneie o QR code exibido na tela.
+                  </Text>
+                </>
+              )}
+            </Div>
+          </Modal>
+        )}
         <Table
           style={{ width: "100%" }}
           onRow={(record, rowIndex) => {
             return {
               onClick: (event) => {
-                console.log("click row");
+                navigate(`/agentSignUp`, {
+                  state: { id: list[rowIndex]?.id },
+                });
               },
             };
           }}
           bordered
           dataSource={list}
-          columns={columns}
+          columns={_columns}
           rowKey="id"
           pagination={{ pageSize: 5 }}
         />
