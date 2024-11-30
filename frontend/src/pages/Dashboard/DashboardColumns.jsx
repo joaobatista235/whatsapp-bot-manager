@@ -23,20 +23,6 @@ export const DashboardColumns = ({ deleteAgent, handleLoad, updateAgent }) => {
         onClick={(e) => {
           console.log(e);
           e.domEvent.stopPropagation();
-          deleteAgent(row.id).then(() => handleLoad());
-        }}
-        icon={<AiOutlineDelete size={"16px"} color={"red"} />}
-        key="delete"
-      >
-        <Div width={"80px"}>
-          <Text style={{ fontWeight: "500" }}>Excluir</Text>
-        </Div>
-      </Menu.Item>
-
-      <Menu.Item
-        onClick={(e) => {
-          console.log(e);
-          e.domEvent.stopPropagation();
           updateAgent(row);
         }}
         icon={
@@ -51,6 +37,20 @@ export const DashboardColumns = ({ deleteAgent, handleLoad, updateAgent }) => {
           <Text style={{ fontWeight: "500" }}>
             {row?.status ? "Pausar" : "Iniciar"}
           </Text>
+        </Div>
+      </Menu.Item>
+
+      <Menu.Item
+        onClick={(e) => {
+          console.log(e);
+          e.domEvent.stopPropagation();
+          deleteAgent(row.id).then(() => handleLoad());
+        }}
+        icon={<AiOutlineDelete size={"16px"} color={"red"} />}
+        key="delete"
+      >
+        <Div width={"80px"}>
+          <Text style={{ fontWeight: "500" }}>Excluir</Text>
         </Div>
       </Menu.Item>
     </Menu>

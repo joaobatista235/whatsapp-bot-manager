@@ -9,9 +9,9 @@ export default (db, gloogleService) => {
     apiKey: process.env.OPENAI_API_KEY,
   });
 
-  const threads = {}; // Armazena o threadId para cada número
+  const threads = {};
   let pollingInterval;
-  const activeSessions = new Map(); // Mapa para rastrear sessões ativas
+  const activeSessions = new Map();
 
   const createAgent = ({ body }) => {
     const { companyName, context, objective, communication, name, sector } =
@@ -325,21 +325,17 @@ export default (db, gloogleService) => {
   };
 
   const _addMessage = (threadId, message) => {
-    console.log("✌️message --->", message);
+    console.log("✌️threadId --->", threadId);
     return new Promise((resolve, reject) => {
-      // Primeiro, cria a mensagem com a API do OpenAI
       openai.beta.threads.messages
         .create(threadId, {
           role: "user",
           content: message,
         })
         .then((response) => {
-          // Se a mensagem for criada com sucesso, agora salvamos no banco de dados
-
           const threadRef = db.collection("threads").doc(threadId);
           const messagesRef = threadRef.collection("messages");
 
-          // Adiciona a mensagem na subcoleção 'messages'
           return messagesRef
             .add({
               content: message,
@@ -349,11 +345,9 @@ export default (db, gloogleService) => {
             .then(() => resolve(response));
         })
         .then(() => {
-          // Resolva a Promise com sucesso
           resolve("Mensagem adicionada e salva com sucesso!");
         })
         .catch((error) => {
-          // Em caso de erro, rejeite a Promise
           reject(`Erro ao adicionar mensagem: ${error.message}`);
         });
     });
@@ -377,8 +371,6 @@ export default (db, gloogleService) => {
       openai.beta.threads.runs
         .retrieve(threadId, runId)
         .then((runObject) => {
-          console.log(runObject);
-
           const status = runObject.status;
           console.log("Current status: " + status);
 
@@ -442,29 +434,130 @@ export default (db, gloogleService) => {
     });
   };
 
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  // const _handleMessages = (client, assistantId) => {
+  //   client.onMessage((message) => {
+  //     if (!message.isGroupMsg && message.isNewMsg) {
+  //       let threadId;
+
+  //       const addMessageAndRunAssistant = (threadId) => {
+  //         console.log(
+  //           "✌️threads[message.from]?.isProcessing --->",
+  //           threads[message.from]?.isProcessing
+  //         );
+  //         if (threads[message.from]?.isProcessing) {
+  //           threads[message.from]["penddingMessages"] = [
+  //             ...threads[message.from]?.penddingMessages,
+  //             message,
+  //           ];
+  //           console.log(
+  //             "✌️threads[message.from]?.penddingMessages  --->",
+  //             threads[message.from]?.penddingMessages
+  //           );
+  //           return;
+  //         }
+
+  //         _addMessage(threadId, message.body)
+  //           .then(() => {
+  //             threads[message.from]["isProcessing"] = true;
+
+  //             _runAssistant(threadId, assistantId).then((run) => {
+  //               const runId = run.id;
+
+  //               pollingInterval = setInterval(() => {
+  //                 _checkingStatus(
+  //                   (response) => {
+  //                     client.sendText(
+  //                       message.from,
+  //                       response.messages[0][0].text.value
+  //                     );
+  //                     threads[message.from]["isProcessing"] = false;
+  //                   },
+  //                   threadId,
+  //                   runId
+  //                 );
+  //               }, 5000);
+  //             });
+  //           })
+  //           .catch((error) => {
+  //             console.error("Erro ao adicionar mensagem:", error);
+  //           });
+  //       };
+
+  //       if (threads[message.from]?.id) {
+  //         threadId = threads[message.from].id;
+  //         sleep(2000).then(() => {
+  //           if (threads[message.from]?.isProcessing) return;
+
+  //           console.log(message.body);
+  //           addMessageAndRunAssistant(threadId);
+  //         });
+  //       } else {
+  //         db.collection("threads")
+  //           .where("threadId", "==", `${threadId}`)
+  //           .get()
+  //           .then((querySnapshot) => {
+  //             if (!querySnapshot.empty) {
+  //               const doc = querySnapshot.docs[0];
+  //               console.log(doc);
+
+  //               threadId = doc.id;
+  //               threads[message.from] = threads[message.from] || {};
+  //               threads[message.from]["id"] = threadId;
+  //               addMessageAndRunAssistant(threadId);
+  //             } else {
+  //               _createThread(assistantId)
+  //                 .then((thread) => {
+  //                   threadId = thread.id;
+  //                   threads[message.from] = threads[message.from] || {};
+  //                   threads[message.from]["id"] = threadId;
+  //                   addMessageAndRunAssistant(threadId);
+  //                 })
+  //                 .catch((error) => {
+  //                   console.error("Erro ao criar thread:", error);
+  //                 });
+  //             }
+  //           })
+  //           .catch((error) => {
+  //             console.error("Erro ao consultar Firestore:", error);
+  //           });
+  //       }
+  //     }
+  //   });
+  // };
+
   const _handleMessages = (client, assistantId) => {
     client.onMessage((message) => {
-      if (message.isGroupMsg === false && message.isNewMsg) {
-        console.log("✌️message --->", message);
-        let threadId;
+      if (!message.isGroupMsg && message.isNewMsg) {
+        const processNextMessage = (from) => {
+          const pending = threads[from]?.penddingMessages || [];
+          if (pending.length > 0) {
+            const nextMessage = pending.shift(); // Remove a próxima mensagem da fila
+            addMessageAndRunAssistant(nextMessage);
+          } else {
+            threads[from]["isProcessing"] = false; // Finaliza o processamento
+          }
+        };
 
-        // Função para adicionar mensagem à thread
-        const addMessageAndRunAssistant = (threadId) => {
+        const addMessageAndRunAssistant = (message) => {
+          const threadId = threads[message.from].id;
+
           _addMessage(threadId, message.body)
             .then(() => {
-              // Executa o assistente e lida com a resposta
+              threads[message.from]["isProcessing"] = true;
+
               _runAssistant(threadId, assistantId).then((run) => {
                 const runId = run.id;
 
-                // Polling para verificar o status do assistente
-                pollingInterval = setInterval(() => {
+                const pollingInterval = setInterval(() => {
                   _checkingStatus(
                     (response) => {
-                      // Envia a resposta de volta para o WhatsApp
+                      clearInterval(pollingInterval); // Para o intervalo após resposta
                       client.sendText(
                         message.from,
                         response.messages[0][0].text.value
                       );
+                      processNextMessage(message.from); // Processa a próxima mensagem
                     },
                     threadId,
                     runId
@@ -474,28 +567,36 @@ export default (db, gloogleService) => {
             })
             .catch((error) => {
               console.error("Erro ao adicionar mensagem:", error);
+              processNextMessage(message.from); // Garante que a fila continue
             });
         };
 
-        if (threads[message.from]) {
-          threadId = threads[message.from];
-          addMessageAndRunAssistant(threadId);
+        const initializeThread = (threadId, message) => {
+          threads[message.from] = threads[message.from] || {};
+          threads[message.from]["id"] = threadId;
+          threads[message.from]["penddingMessages"] = [];
+
+          if (!threads[message.from]["isProcessing"]) {
+            addMessageAndRunAssistant(message);
+          } else {
+            threads[message.from]["penddingMessages"].push(message);
+          }
+        };
+
+        if (threads[message.from]?.id) {
+          initializeThread(threads[message.from].id, message);
         } else {
           db.collection("threads")
-            .where("threadId", "==", message.from)
+            .where("threadId", "==", `${message.from}`)
             .get()
             .then((querySnapshot) => {
               if (!querySnapshot.empty) {
                 const doc = querySnapshot.docs[0];
-                threadId = doc.id;
-                threads[message.from] = threadId;
-                addMessageAndRunAssistant(threadId);
+                initializeThread(doc.id, message);
               } else {
                 _createThread(assistantId)
                   .then((thread) => {
-                    threadId = thread.id;
-                    threads[message.from] = threadId;
-                    addMessageAndRunAssistant(threadId);
+                    initializeThread(thread.id, message);
                   })
                   .catch((error) => {
                     console.error("Erro ao criar thread:", error);
