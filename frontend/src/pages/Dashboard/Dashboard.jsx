@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Button, Dropdown, Image, Menu, Modal, Table, Typography } from "antd";
+import { useEffect, useState } from "react";
+import { Button, Image, Modal, Table, Typography } from "antd";
 import { Div } from "../../styles/style";
 import { useNavigate } from "react-router-dom";
 import { getAgents } from "../../services/agent";
@@ -135,7 +135,7 @@ const Dashboard = () => {
           style={{ width: "100%" }}
           onRow={(record, rowIndex) => {
             return {
-              onClick: (event) => {
+              onClick: () => {
                 navigate(`/agentSignUp`, {
                   state: { id: list[rowIndex]?.id },
                 });

@@ -20,6 +20,6 @@
     "ioredis": "^5.4.1",
     "openai": "^4.67.3",
     "queue-promise": "^2.2.1",
-    "venom-bot": "^5.1.0"
+    "venom-bot": "github:venomlib/venom"
   }
 }

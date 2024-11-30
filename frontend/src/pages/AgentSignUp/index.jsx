@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import { Radio, Select, Typography, Input, Spin } from "antd";
@@ -71,7 +71,7 @@ function AgentSignUp() {
     setLoading(true);
 
     const fn = myParam ? handleUpdate : handleCreate;
-    fn({ ...formData }).then((response) => {
+    fn({ ...formData }).then(() => {
       setLoading(false);
       navigate(-1);
     });
@@ -80,20 +80,20 @@ function AgentSignUp() {
   const contextTooltip = (
     <Div padding={"16px"} direction="column" gap={"8px"}>
       <Div>
-        Informe o conteúdo que será utilizado pela IA para atender os clientes
+        {`Informe o conteúdo que será utilizado pela IA para atender os clientes
         via WhatsApp. Neste campo, você deve descrever o contexto específico que
         a IA deve seguir, como informações sobre os produtos ou serviços, o tom
         de comunicação desejado, e qualquer detalhe relevante para personalizar
         o atendimento. Quanto mais detalhado o contexto, mais eficaz e alinhada
-        será a resposta da IA às necessidades dos clientes.
+        será a resposta da IA às necessidades dos clientes.`}
       </Div>
       <Div>
-        Exemplo: "A IA deve atender clientes interessados em serviços de suporte
-        técnico para dispositivos eletrônicos. O tom deve ser amigável e
-        profissional, oferecendo respostas rápidas e claras. A IA deve sugerir
-        soluções comuns para problemas técnicos e oferecer assistência para
-        marcar visitas técnicas, caso necessário. Incluir detalhes sobre os
-        horários de funcionamento e informações de contato."{" "}
+        {`Exemplo: "A IA deve atender clientes interessados em serviços de suporte
+          técnico para dispositivos eletrônicos. O tom deve ser amigável e
+          profissional, oferecendo respostas rápidas e claras. A IA deve sugerir
+          soluções comuns para problemas técnicos e oferecer assistência para
+          marcar visitas técnicas, caso necessário. Incluir detalhes sobre os
+          horários de funcionamento e informações de contato."`}
       </Div>
     </Div>
   );
@@ -152,7 +152,7 @@ function AgentSignUp() {
                 onChange={handleInputChange}
               >
                 {objectiveOptions.map(({ value, label }, i) => (
-                  <Radio.Button value={value}>{label}</Radio.Button>
+                  <Radio.Button key={i} value={value}>{label}</Radio.Button>
                 ))}
               </Radio.Group>
             </FormControl>
@@ -166,7 +166,7 @@ function AgentSignUp() {
                 onChange={handleInputChange}
               >
                 {comunicationOptions.map(({ value, label }, i) => (
-                  <Radio.Button value={value}>{label}</Radio.Button>
+                  <Radio.Button key={i} value={value}>{label}</Radio.Button>
                 ))}
               </Radio.Group>
             </FormControl>

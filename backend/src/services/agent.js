@@ -78,9 +78,9 @@ export default (db, gloogleService) => {
         const openAiUpdatePromise =
           name || context
             ? openai.beta.assistants.update(agentData.assistantId, {
-                name: updatedAgent.name,
-                instructions: updatedAgent.getGlobalContext(),
-              })
+              name: updatedAgent.name,
+              instructions: updatedAgent.getGlobalContext(),
+            })
             : Promise.resolve();
 
         return openAiUpdatePromise.then(() =>
@@ -167,22 +167,33 @@ export default (db, gloogleService) => {
           }
 
           venom
-            .create(
-              sessionName,
-              (base64Qrimg, asciiQR) => {
-                console.log("Terminal qrcode: ", asciiQR);
-                console.log("Base64 image string qrcode: ", base64Qrimg);
+            .create({
+              session: sessionName,
+              catchQR: (qrCode, asciiQR, attempts, urlCode) => {
+                console.log("QR Code gerado: ", qrCode);
+                console.log("Attempts: ", attempts);
+                
+                resolve({
+                  qrcode: `${qrCode}`,
+                  attempts: attempts,
+                  urlCode: urlCode
+                });
               },
-              (statusSession) => {
-                console.log("Status Session: ", statusSession);
+              folderNameToken: "tokens",
+              logQR: false,
+              statusFind: (statusSession) => {
+
+              if (statusSession === "qrReadFail") {
+                console.log("QR code expirou. Tentando novamente...");
+              }
 
                 if (statusSession === "successChat") {
-                  // Atualizar o status do agente para 1 (autenticado)
                   agentRef
                     .update({
                       status: true,
                     })
                     .then(() => {
+                      resolve({ status: "qrRead" });
                       console.log("Agent status updated to authenticated");
                     })
                     .catch((error) => {
@@ -190,36 +201,9 @@ export default (db, gloogleService) => {
                     });
                 }
               },
-              {
-                folderNameToken: "tokens",
-                logQR: true,
-              },
-              async (browser, waPage) => {
-                try {
-                  console.log("Aguardando o QR code aparecer...");
-                  await waPage.waitForSelector("canvas", { timeout: 60000 });
-
-                  const qrElement = await waPage.$("canvas");
-
-                  let qrFileName = `qrcode_${Date.now()}.png`;
-
-                  await qrElement.screenshot({ path: qrFileName });
-
-                  const screenshotBuffer = fs.readFileSync(qrFileName);
-                  const base64Screenshot = screenshotBuffer.toString("base64");
-
-                  fs.unlinkSync(qrFileName);
-
-                  resolve({
-                    qrcode: `data:image/png;base64,${base64Screenshot}`,
-                  });
-                } catch (error) {
-                  console.log("Erro ao capturar o QR code:", error);
-                }
-              }
-            )
+            })
             .then((client) => {
-              activeSessions.set(sessionName, client); // Armazena o cliente no mapa de sessões ativas
+              activeSessions.set(sessionName, client);
               _handleMessages(client, assistantId);
             })
             .catch((error) => {
