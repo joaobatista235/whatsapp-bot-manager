@@ -7,11 +7,8 @@ import PrivateRoute from "./routes/PrivateRoute";
 import { useAuth } from "./_Hooks/useAuth";
 import WithSideBar from "./components/layouts/withSideBar";
 import { ToastContainer } from "react-toastify";
-import Agenda from "./pages/Agenda";
-import Flow from "./pages/Flow";
-import Concat from "./pages/Concat";
-import Chat from "./pages/Chat";
-import Time from "./pages/Time";
+import Chats from "./pages/Chats/Chats";
+import ChatHistory from "./pages/ChatHistory/ChatHistory";
 
 const App = () => {
   useAuth();
@@ -67,55 +64,22 @@ const App = () => {
         />
 
         <Route
-          path="/agenda"
-          element={
-            <PrivateRoute>
-              <WithSideBar>
-                <Agenda />
-              </WithSideBar>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/flow"
-          element={
-            <PrivateRoute>
-              <WithSideBar>
-                <Flow />
-              </WithSideBar>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/contacts"
-          element={
-            <PrivateRoute>
-              <WithSideBar>
-                <Concat />
-              </WithSideBar>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
           path="/chats"
           element={
             <PrivateRoute>
               <WithSideBar>
-                <Chat />
+                <Chats />
               </WithSideBar>
             </PrivateRoute>
           }
         />
 
         <Route
-          path="/time"
+          path="/chat"
           element={
             <PrivateRoute>
               <WithSideBar>
-                <Time />
+                <ChatHistory />
               </WithSideBar>
             </PrivateRoute>
           }

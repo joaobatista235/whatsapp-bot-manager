@@ -5,6 +5,7 @@ import {
   objectiveOptions,
 } from "../../assets/enumHelper.js";
 import {
+  AiFillEdit,
   AiOutlineDelete,
   AiOutlineEdit,
   AiOutlineFileText,
@@ -16,12 +17,32 @@ import { Div } from "../../styles/style.js";
 
 const { Text } = Typography;
 
-export const DashboardColumns = ({ deleteAgent, handleLoad, updateAgent }) => {
-  const actionMenu = (row) => (
+export const DashboardColumns = ({
+  deleteAgent,
+  handleLoad,
+  updateAgent,
+  navigate,
+}) => {
+  const actionMenu = (row, index) => (
     <Menu>
       <Menu.Item
+        style={{ width: "200px" }}
         onClick={(e) => {
-          console.log(e);
+          e.domEvent.stopPropagation();
+          navigate(`/agentSignUp`, {
+            state: { id: row?.id },
+          });
+        }}
+        icon={<AiFillEdit color="blue" size={"16px"} />}
+        key={"editAgent"}
+      >
+        <Div>
+          <Text style={{ fontWeight: "500" }}>Editar Agente</Text>
+        </Div>
+      </Menu.Item>
+
+      <Menu.Item
+        onClick={(e) => {
           e.domEvent.stopPropagation();
           updateAgent(row);
         }}
@@ -33,7 +54,7 @@ export const DashboardColumns = ({ deleteAgent, handleLoad, updateAgent }) => {
         }
         key={row?.status ? "stopAgent" : "startAgent"}
       >
-        <Div width={"80px"}>
+        <Div>
           <Text style={{ fontWeight: "500" }}>
             {row?.status ? "Pausar" : "Iniciar"}
           </Text>
@@ -49,7 +70,7 @@ export const DashboardColumns = ({ deleteAgent, handleLoad, updateAgent }) => {
         icon={<AiOutlineDelete size={"16px"} color={"red"} />}
         key="delete"
       >
-        <Div width={"80px"}>
+        <Div>
           <Text style={{ fontWeight: "500" }}>Excluir</Text>
         </Div>
       </Menu.Item>
@@ -128,10 +149,10 @@ export const DashboardColumns = ({ deleteAgent, handleLoad, updateAgent }) => {
     {
       title: "Ações",
       width: 100,
-      render: (val, row) => {
+      render: (val, row, index) => {
         return (
           <Dropdown
-            overlay={actionMenu(row)}
+            overlay={actionMenu(row, index)}
             trigger={["click"]}
             onClick={(e) => e.stopPropagation()}
           >

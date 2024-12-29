@@ -28,36 +28,12 @@ export default (oauth2Client) => {
     });
   };
 
-  const getEvents = () => {
-    const calendarId = "primary";
-    return new Promise((resolve, reject) => {
-      calendar.events.list(
-        {
-          calendarId,
-          timeMin: new Date().toISOString(),
-          maxResults: 15,
-          singleEvents: true,
-          orderBy: "startTime",
-        },
-        (err, response) => {
-          if (err) {
-            console.error("Erro ao buscar eventos:", err);
-            reject("Erro ao buscar eventos");
-            return;
-          }
-          resolve(response.data.items);
-        }
-      );
-    });
-  };
-
   const createCalendarMeeting = (args) => {
     console.log("✌️args --->", args);
     return new Promise((resolve, reject) => {
       try {
         const { email, date, time, subject } = args;
         const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-        console.log(oauth2Client);
 
         const event = {
           summary: subject,
@@ -74,21 +50,6 @@ export default (oauth2Client) => {
           attendees: [{ email }],
         };
         console.log("✌️event --->", event);
-        // const mockEventData = {
-        //   calendarId: "primary",
-        //   summary: "teste",
-        //   description:
-        //     "Reunião para discutir o planejamento do próximo trimestre.",
-        //   start: {
-        //     dateTime: "2024-11-15T10:00:00-03:00",
-        //     timeZone: "America/Sao_Paulo",
-        //   },
-        //   end: {
-        //     dateTime: "2024-11-15T11:00:00-03:00",
-        //     timeZone: "America/Sao_Paulo",
-        //   },
-        //   attendees: [{ email }],
-        // };
 
         calendar.events
           .insert({
@@ -116,7 +77,6 @@ export default (oauth2Client) => {
   return {
     generateAuthUrl,
     getToken,
-    getEvents,
     createCalendarMeeting,
   };
 };

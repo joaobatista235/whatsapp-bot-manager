@@ -1,14 +1,5 @@
 import { Box, IconButton, Link, VStack } from "@chakra-ui/react";
-import {
-  FaBezierCurve,
-  FaCalendarAlt,
-  FaCommentDots,
-  FaHome,
-  FaPortrait,
-  FaSignOutAlt,
-  FaWrench,
-  FaUserFriends,
-} from "react-icons/fa";
+import { FaHome, FaSignOutAlt } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout } from "../../redux/models/authSlice";
@@ -74,16 +65,6 @@ const Sidebar = () => {
         </Div>
         <SidebarItem icon={<FaHome />} label="Dashboard" to="/dashboard" />
 
-        {/* 
-        <SidebarItem
-          icon={<FaUserFriends />}
-          label="Profissionais"
-          to="/time"
-        /> <SidebarItem icon={<FaCommentDots />} label="Conversas" to="/chats" />
-        <SidebarItem icon={<FaPortrait />} label="Contatos" to="/contacts" />
-        <SidebarItem icon={<FaCalendarAlt />} label="Agenda" to="/agenda" />
-        <SidebarItem icon={<FaBezierCurve />} label="Fluxos" to="/flow" />
-        <SidebarItem icon={<FaWrench />} label="Configurações" to="/settings" /> */}
         <SidebarItem
           icon={<FaSignOutAlt />}
           label="Logout"

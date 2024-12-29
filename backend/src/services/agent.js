@@ -12,6 +12,7 @@ export default (db, gloogleService) => {
   const threads = {};
   let pollingInterval;
   const activeSessions = new Map();
+  const activeRuns = new Map();
 
   const createAgent = ({ body }) => {
     const { companyName, context, objective, communication, name, sector } =
@@ -78,9 +79,9 @@ export default (db, gloogleService) => {
         const openAiUpdatePromise =
           name || context
             ? openai.beta.assistants.update(agentData.assistantId, {
-              name: updatedAgent.name,
-              instructions: updatedAgent.getGlobalContext(),
-            })
+                name: updatedAgent.name,
+                instructions: updatedAgent.getGlobalContext(),
+              })
             : Promise.resolve();
 
         return openAiUpdatePromise.then(() =>
@@ -117,21 +118,15 @@ export default (db, gloogleService) => {
           throw new Error("Agente não encontrado.");
         }
 
-        // Pega o assistantId diretamente do documento
         const assistantId = doc.data().assistantId;
         if (!assistantId) {
           throw new Error("AssistantId não encontrado no agente.");
         }
 
-        // Se o agente existe e o assistantId está presente, começamos a exclusão
         const batch = db.batch();
-
-        // Deleta o documento encontrado
         batch.delete(doc.ref);
 
         return batch.commit().then(() => {
-          // Exclui também no OpenAI usando o assistantId
-
           return openai.beta.assistants.del(assistantId);
         });
       })
@@ -160,7 +155,6 @@ export default (db, gloogleService) => {
           const { assistantId } = doc.data();
           const sessionName = `session_${assistantId}`;
 
-          // Verificar se a sessão já está ativa
           if (activeSessions.has(sessionName)) {
             resolve(`Session ${sessionName} is already active`);
             return;
@@ -172,20 +166,19 @@ export default (db, gloogleService) => {
               catchQR: (qrCode, asciiQR, attempts, urlCode) => {
                 console.log("QR Code gerado: ", qrCode);
                 console.log("Attempts: ", attempts);
-                
+
                 resolve({
                   qrcode: `${qrCode}`,
                   attempts: attempts,
-                  urlCode: urlCode
+                  urlCode: urlCode,
                 });
               },
               folderNameToken: "tokens",
               logQR: false,
               statusFind: (statusSession) => {
-
-              if (statusSession === "qrReadFail") {
-                console.log("QR code expirou. Tentando novamente...");
-              }
+                if (statusSession === "qrReadFail") {
+                  console.log("QR code expirou. Tentando novamente...");
+                }
 
                 if (statusSession === "successChat") {
                   agentRef
@@ -238,23 +231,20 @@ export default (db, gloogleService) => {
             return;
           }
 
-          // Encerrar a sessão com o Venom
           client
             .logout()
             .then(() => {
               console.log(`Session ${sessionName} logged out successfully`);
 
-              // Fechar o processo do cliente
               client
                 .close()
                 .then(() => {
                   console.log(`Session ${sessionName} closed successfully`);
                   activeSessions.delete(sessionName);
 
-                  // Atualizar status do agente no Firestore
                   agentRef
                     .update({
-                      status: false, // Atualiza status para inativo
+                      status: false,
                     })
                     .then(() => {
                       console.log("Agent status updated to inactive");
@@ -281,18 +271,21 @@ export default (db, gloogleService) => {
     });
   };
 
-  const _createThread = (assistantId) => {
+  const _createThread = (assistantId, _phone, _name) => {
     return openai.beta.threads
       .create()
       .then((thread) => {
         return db
           .collection("threads")
-          .doc(thread.id) // Aqui você define o id do documento
+          .doc(thread.id)
           .set({
             assistantId,
             threadId: thread.id,
             createdAt: new Date(),
             updatedAt: new Date(),
+            phone: _phone,
+            name: _name,
+            isBlocked: false,
           })
           .then(() => {
             return thread;
@@ -343,10 +336,10 @@ export default (db, gloogleService) => {
         assistant_id: assistantId,
       })
       .then((response) => {
-        return response; // Retorna a resposta da API
+        return response;
       })
       .catch((error) => {
-        throw new Error(`Erro ao executar assistente: ${error.message}`); // Lida com erros
+        throw new Error(`Erro ao executar assistente: ${error.message}`);
       });
   };
 
@@ -357,10 +350,11 @@ export default (db, gloogleService) => {
         .then((runObject) => {
           const status = runObject.status;
           console.log("Current status: " + status);
-
-          if (status === "completed") {
+          if (status === "in_progress") {
+            activeRuns.set(runId, true);
+          } else if (status === "completed" && activeRuns.get(runId)) {
             clearInterval(pollingInterval);
-
+            activeRuns.delete(runId);
             openai.beta.threads.messages
               .list(threadId)
               .then((messagesList) => {
@@ -371,11 +365,23 @@ export default (db, gloogleService) => {
                 });
 
                 callback({ messages });
-                resolve(); // Resolve after the callback is executed
+                resolve();
+
+                const agentResponse = messages[0][0].text.value;
+                const agentMessage = {
+                  content: agentResponse,
+                  createdAt: new Date(),
+                  role: "agent",
+                };
+
+                const threadRef = db.collection("threads").doc(threadId);
+                const messagesRef = threadRef.collection("messages");
+
+                return messagesRef.add(agentMessage);
               })
               .catch((error) =>
                 reject(`Error retrieving messages: ${error.message}`)
-              ); // Error in retrieving messages
+              );
           } else if (status === "requires_action") {
             console.log("requires_action.. looking for a function");
 
@@ -400,115 +406,25 @@ export default (db, gloogleService) => {
                       console.log(
                         "Run after submit tool outputs: " + run.status
                       );
-                      resolve(); // Resolve after submitting tool outputs
+                      resolve();
                     })
                     .catch((error) =>
                       reject(`Error submitting tool outputs: ${error.message}`)
-                    ); // Error in submitting tool outputs
+                    );
                 })
                 .catch((error) =>
                   reject(`Error creating calendar meeting: ${error.message}`)
-                ); // Error in creating calendar meeting
+                );
             }
           }
         })
         .catch((error) =>
           reject(`Error retrieving run object: ${error.message}`)
-        ); // Error in retrieving run object
+        );
     });
   };
 
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  // const _handleMessages = (client, assistantId) => {
-  //   client.onMessage((message) => {
-  //     if (!message.isGroupMsg && message.isNewMsg) {
-  //       let threadId;
-
-  //       const addMessageAndRunAssistant = (threadId) => {
-  //         console.log(
-  //           "✌️threads[message.from]?.isProcessing --->",
-  //           threads[message.from]?.isProcessing
-  //         );
-  //         if (threads[message.from]?.isProcessing) {
-  //           threads[message.from]["penddingMessages"] = [
-  //             ...threads[message.from]?.penddingMessages,
-  //             message,
-  //           ];
-  //           console.log(
-  //             "✌️threads[message.from]?.penddingMessages  --->",
-  //             threads[message.from]?.penddingMessages
-  //           );
-  //           return;
-  //         }
-
-  //         _addMessage(threadId, message.body)
-  //           .then(() => {
-  //             threads[message.from]["isProcessing"] = true;
-
-  //             _runAssistant(threadId, assistantId).then((run) => {
-  //               const runId = run.id;
-
-  //               pollingInterval = setInterval(() => {
-  //                 _checkingStatus(
-  //                   (response) => {
-  //                     client.sendText(
-  //                       message.from,
-  //                       response.messages[0][0].text.value
-  //                     );
-  //                     threads[message.from]["isProcessing"] = false;
-  //                   },
-  //                   threadId,
-  //                   runId
-  //                 );
-  //               }, 5000);
-  //             });
-  //           })
-  //           .catch((error) => {
-  //             console.error("Erro ao adicionar mensagem:", error);
-  //           });
-  //       };
-
-  //       if (threads[message.from]?.id) {
-  //         threadId = threads[message.from].id;
-  //         sleep(2000).then(() => {
-  //           if (threads[message.from]?.isProcessing) return;
-
-  //           console.log(message.body);
-  //           addMessageAndRunAssistant(threadId);
-  //         });
-  //       } else {
-  //         db.collection("threads")
-  //           .where("threadId", "==", `${threadId}`)
-  //           .get()
-  //           .then((querySnapshot) => {
-  //             if (!querySnapshot.empty) {
-  //               const doc = querySnapshot.docs[0];
-  //               console.log(doc);
-
-  //               threadId = doc.id;
-  //               threads[message.from] = threads[message.from] || {};
-  //               threads[message.from]["id"] = threadId;
-  //               addMessageAndRunAssistant(threadId);
-  //             } else {
-  //               _createThread(assistantId)
-  //                 .then((thread) => {
-  //                   threadId = thread.id;
-  //                   threads[message.from] = threads[message.from] || {};
-  //                   threads[message.from]["id"] = threadId;
-  //                   addMessageAndRunAssistant(threadId);
-  //                 })
-  //                 .catch((error) => {
-  //                   console.error("Erro ao criar thread:", error);
-  //                 });
-  //             }
-  //           })
-  //           .catch((error) => {
-  //             console.error("Erro ao consultar Firestore:", error);
-  //           });
-  //       }
-  //     }
-  //   });
-  // };
 
   const _handleMessages = (client, assistantId) => {
     client.onMessage((message) => {
@@ -516,42 +432,81 @@ export default (db, gloogleService) => {
         const processNextMessage = (from) => {
           const pending = threads[from]?.penddingMessages || [];
           if (pending.length > 0) {
-            const nextMessage = pending.shift(); // Remove a próxima mensagem da fila
+            const nextMessage = pending.shift();
             addMessageAndRunAssistant(nextMessage);
           } else {
-            threads[from]["isProcessing"] = false; // Finaliza o processamento
+            threads[from]["isProcessing"] = false;
           }
         };
 
         const addMessageAndRunAssistant = (message) => {
           const threadId = threads[message.from].id;
 
-          _addMessage(threadId, message.body)
-            .then(() => {
-              threads[message.from]["isProcessing"] = true;
+          return db
+            .collection("threads")
+            .doc(threadId)
+            .get()
+            .then((doc) => {
+              if (doc.exists && doc.data().isBlocked) {
+                threads[message.from]["isProcessing"] = false;
+                return Promise.reject("Thread is blocked");
+              }
 
-              _runAssistant(threadId, assistantId).then((run) => {
-                const runId = run.id;
+              return _addMessage(threadId, message.body)
+                .then(() => {
+                  threads[message.from]["isProcessing"] = true;
 
-                const pollingInterval = setInterval(() => {
-                  _checkingStatus(
-                    (response) => {
-                      clearInterval(pollingInterval); // Para o intervalo após resposta
-                      client.sendText(
-                        message.from,
-                        response.messages[0][0].text.value
-                      );
-                      processNextMessage(message.from); // Processa a próxima mensagem
-                    },
-                    threadId,
-                    runId
-                  );
-                }, 5000);
-              });
-            })
-            .catch((error) => {
-              console.error("Erro ao adicionar mensagem:", error);
-              processNextMessage(message.from); // Garante que a fila continue
+                  if (!threads[message.from]?.id) {
+                    _createThread(
+                      assistantId,
+                      message?.from,
+                      message?.sender?.pushname
+                    ).then((thread) => {
+                      threads[message.from].id = thread.id;
+                      _runAssistant(thread.id, assistantId).then((run) => {
+                        const runId = run.id;
+
+                        pollingInterval = setInterval(() => {
+                          _checkingStatus(
+                            (response) => {
+                              clearInterval(pollingInterval);
+                              client.sendText(
+                                message?.from,
+                                response.messages[0][0].text.value
+                              );
+                              processNextMessage(message.from);
+                            },
+                            thread.id,
+                            runId
+                          );
+                        }, 500);
+                      });
+                    });
+                  } else {
+                    _runAssistant(threadId, assistantId).then((run) => {
+                      const runId = run.id;
+
+                      pollingInterval = setInterval(() => {
+                        _checkingStatus(
+                          (response) => {
+                            clearInterval(pollingInterval);
+                            client.sendText(
+                              message?.from,
+                              response.messages[0][0].text.value
+                            );
+                            processNextMessage(message.from);
+                          },
+                          threadId,
+                          runId
+                        );
+                      }, 500);
+                    });
+                  }
+                })
+                .catch((error) => {
+                  console.error("Erro ao adicionar mensagem:", error);
+                  processNextMessage(message.from);
+                });
             });
         };
 
@@ -578,7 +533,11 @@ export default (db, gloogleService) => {
                 const doc = querySnapshot.docs[0];
                 initializeThread(doc.id, message);
               } else {
-                _createThread(assistantId)
+                _createThread(
+                  assistantId,
+                  message?.from,
+                  message?.sender?.pushname
+                )
                   .then((thread) => {
                     initializeThread(thread.id, message);
                   })
@@ -595,5 +554,28 @@ export default (db, gloogleService) => {
     });
   };
 
-  return { createAgent, updateAgent, deleteAgent, startAgent, stopAgent };
+  const stopThread = ({ id }) => {
+    return db
+      .collection("threads")
+      .doc(id)
+      .get()
+      .then((doc) => {
+        if (!doc.exists) {
+          throw new Error("Thread not found");
+        }
+        return db.collection("threads").doc(id).update({
+          isBlocked: !doc.data().isBlocked,
+          updatedAt: new Date(),
+        });
+      });
+  };
+
+  return {
+    createAgent,
+    updateAgent,
+    deleteAgent,
+    startAgent,
+    stopAgent,
+    stopThread,
+  };
 };

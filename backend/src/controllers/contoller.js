@@ -27,21 +27,6 @@ const handleGoogleCallback = (req, res, next) => {
     .catch(next);
 };
 
-const getEvents = (req, res, next) => {
-  const code = req?.query?.code;
-  return gloogleService
-    .getEvents(code)
-    .then((response) => res.json(response))
-    .catch(next);
-};
-
-const createEvent = (req, res, next) => {
-  return gloogleService
-    .createCalendarMeeting({ email: "diego@gmail.com" })
-    .then((response) => res.json(response))
-    .catch(next);
-};
-
 const createAgent = (req, res, next) => {
   const { body } = req;
   return agentService
@@ -86,14 +71,25 @@ const deleteAgent = (req, res, next) => {
     .catch(next);
 };
 
+const stopThread = (req, res, next) => {
+  console.log('stopThread');
+  
+  const { id } = req.params;
+  console.log(id);
+  
+  return agentService
+    .stopThread({ id })
+    .then((response) => res.json(response))
+    .catch(next);
+};
+
 export {
   redirectToGoogleAuth,
   handleGoogleCallback,
-  getEvents,
-  createEvent,
   createAgent,
   updateAgent,
   deleteAgent,
   startAgent,
   stopAgent,
+  stopThread
 };

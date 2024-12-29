@@ -60,10 +60,13 @@ const Dashboard = () => {
   };
 
   const navigate = useNavigate();
+
   const _columns = DashboardColumns({
     deleteAgent,
     handleLoad,
     updateAgent,
+    navigate,
+    navigate,
   });
 
   const handleLogin = () => {
@@ -133,16 +136,16 @@ const Dashboard = () => {
         )}
         <Table
           style={{ width: "100%" }}
+          bordered
           onRow={(record, rowIndex) => {
             return {
               onClick: () => {
-                navigate(`/agentSignUp`, {
+                navigate(`/chats`, {
                   state: { id: list[rowIndex]?.id },
                 });
               },
             };
           }}
-          bordered
           dataSource={list}
           columns={_columns}
           rowKey="id"
