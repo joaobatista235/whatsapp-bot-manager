@@ -71,14 +71,11 @@ const deleteAgent = (req, res, next) => {
     .catch(next);
 };
 
-const stopThread = (req, res, next) => {
-  console.log('stopThread');
-  
+const handleThread = (req, res, next) => {
   const { id } = req.params;
-  console.log(id);
-  
+
   return agentService
-    .stopThread({ id })
+    .handleThread({ id })
     .then((response) => res.json(response))
     .catch(next);
 };
@@ -91,5 +88,5 @@ export {
   deleteAgent,
   startAgent,
   stopAgent,
-  stopThread
+  handleThread,
 };

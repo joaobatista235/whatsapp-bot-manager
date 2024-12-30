@@ -175,6 +175,9 @@ export default (db, gloogleService) => {
               },
               folderNameToken: "tokens",
               logQR: false,
+              puppeteerOptions: {
+                executablePath: "/usr/bin/chromium-browser",
+              },
               statusFind: (statusSession) => {
                 if (statusSession === "qrReadFail") {
                   console.log("QR code expirou. Tentando novamente...");
@@ -521,12 +524,14 @@ export default (db, gloogleService) => {
             threads[message.from]["penddingMessages"].push(message);
           }
         };
+        console.log(threads[message.from]?.id);
+        console.log(message.from);
 
         if (threads[message.from]?.id) {
           initializeThread(threads[message.from].id, message);
         } else {
           db.collection("threads")
-            .where("threadId", "==", `${message.from}`)
+            .where("phone", "==", `${message.from}`)
             .get()
             .then((querySnapshot) => {
               if (!querySnapshot.empty) {
@@ -554,7 +559,7 @@ export default (db, gloogleService) => {
     });
   };
 
-  const stopThread = ({ id }) => {
+  const handleThread = ({ id }) => {
     return db
       .collection("threads")
       .doc(id)
@@ -576,6 +581,6 @@ export default (db, gloogleService) => {
     deleteAgent,
     startAgent,
     stopAgent,
-    stopThread,
+    handleThread,
   };
 };

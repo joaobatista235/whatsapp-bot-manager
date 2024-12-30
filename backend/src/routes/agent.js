@@ -5,7 +5,7 @@ import {
   deleteAgent,
   startAgent,
   stopAgent,
-  stopThread
+  handleThread,
 } from "../controllers/contoller.js";
 
 const agentRoutes = express.Router();
@@ -13,7 +13,7 @@ const agentRoutes = express.Router();
 agentRoutes.post("/", createAgent);
 agentRoutes.put("/startAgent/:id", startAgent);
 agentRoutes.put("/stopAgent/:id", stopAgent);
-agentRoutes.put("/stopThread/:id", stopThread);
+agentRoutes.put("/handleThread/:id", handleThread);
 agentRoutes.put("/:id", updateAgent);
 agentRoutes.delete("/:id", deleteAgent);
 

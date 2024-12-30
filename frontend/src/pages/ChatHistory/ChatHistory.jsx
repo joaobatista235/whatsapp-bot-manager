@@ -1,7 +1,11 @@
 import { Typography, List, Avatar, Button, message, Tooltip } from "antd";
 import { Div } from "../../styles/style";
 import { useState, useEffect } from "react";
-import { AiOutlineWhatsApp, AiOutlineStop } from "react-icons/ai";
+import {
+  AiOutlineWhatsApp,
+  AiOutlineStop,
+  AiOutlineSync,
+} from "react-icons/ai";
 import { collection, query, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { useLocation } from "react-router-dom";
 import { db } from "../../config/firebase";
@@ -15,8 +19,8 @@ function ChatHistory() {
 
   const [conversations, setConversations] = useState([]);
 
-  const { handleUpdate: stopThread } = useApiRequest({
-    endpoint: "agent/stopThread",
+  const { handleUpdate: handleThread } = useApiRequest({
+    endpoint: "agent/handleThread",
     showToast: true,
     message: "Pausado com sucesso !",
   });
@@ -26,24 +30,26 @@ function ChatHistory() {
 
     const fetchMessages = async () => {
       const q = query(collection(db, `threads/${myParam}/messages`));
-      const threadDoc = await getDoc(doc(db, `threads/${myParam}`));
-      const threadData = threadDoc.data();
+      const threadRef = doc(db, `threads/${myParam}`);
+      unsubscribe = onSnapshot(threadRef, (threadDoc) => {
+        const threadData = threadDoc.data();
 
-      unsubscribe = onSnapshot(q, (messagesSnapshot) => {
-        const messagesData = messagesSnapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
-          .sort((a, b) => a.createdAt - b.createdAt);
+        unsubscribe = onSnapshot(q, (messagesSnapshot) => {
+          const messagesData = messagesSnapshot.docs
+            .map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }))
+            .sort((a, b) => a.createdAt - b.createdAt);
 
-        setConversations([
-          {
-            ...threadData,
-            avatar: "https://xsgames.co/randomusers/avatar.php?g=male",
-            messages: messagesData,
-          },
-        ]);
+          setConversations([
+            {
+              ...threadData,
+              avatar: "https://xsgames.co/randomusers/avatar.php?g=male",
+              messages: messagesData,
+            },
+          ]);
+        });
       });
     };
 
@@ -54,8 +60,8 @@ function ChatHistory() {
     };
   }, [myParam]);
 
-  const handleStopAgent = () => {
-    stopThread({ threadId: myParam });
+  const _handleThread = () => {
+    handleThread({ id: myParam });
   };
 
   const openWhatsApp = (phone) => {
@@ -108,13 +114,21 @@ function ChatHistory() {
                 </Tooltip>
                 <Tooltip title="Parar respostas do agente">
                   <Button
-                    danger
+                    danger={!conversation?.isBlocked}
                     type="primary"
-                    icon={<AiOutlineStop />}
-                    onClick={() => handleStopAgent()}
+                    icon={
+                      !conversation?.isBlocked ? (
+                        <AiOutlineStop />
+                      ) : (
+                        <AiOutlineSync />
+                      )
+                    }
+                    onClick={() => _handleThread()}
                     style={{}}
                   >
-                    Parar Agente
+                    {conversation?.isBlocked
+                      ? "Voltar a responder"
+                      : "Parar de responder"}
                   </Button>
                 </Tooltip>
               </Div>,
@@ -134,7 +148,7 @@ function ChatHistory() {
                   }}
                 >
                   <Div align="center" gap="12px">
-                    <Avatar src={conversation.avatar} size={48} />
+                    <Avatar style={{ backgroundColor: "gray" }} size={48} />
                     <Text strong style={{ color: "white" }}>
                       {conversation.name}
                     </Text>
