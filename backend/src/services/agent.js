@@ -427,66 +427,51 @@ export default (db, gloogleService) => {
     });
   };
 
-  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
   const _handleMessages = (client, assistantId) => {
     client.onMessage((message) => {
-      if (!message.isGroupMsg && message.isNewMsg) {
-        const processNextMessage = (from) => {
-          const pending = threads[from]?.penddingMessages || [];
-          if (pending.length > 0) {
-            const nextMessage = pending.shift();
-            addMessageAndRunAssistant(nextMessage);
-          } else {
-            threads[from]["isProcessing"] = false;
-          }
-        };
+      if (message.isGroupMsg || !message.isNewMsg) return;
+      if (message.type !== "chat") {
+        client.sendText(
+          message.from,
+          "Por favor, escreva sua mensagem para que eu possa entender melhor."
+        );
+        return;
+      }
+      const processNextMessage = (from) => {
+        const pending = threads[from]?.penddingMessages || [];
+        if (pending.length > 0) {
+          const nextMessage = pending.shift();
+          addMessageAndRunAssistant(nextMessage);
+        } else {
+          threads[from]["isProcessing"] = false;
+        }
+      };
 
-        const addMessageAndRunAssistant = (message) => {
-          const threadId = threads[message.from].id;
+      const addMessageAndRunAssistant = (message) => {
+        const threadId = threads[message.from].id;
 
-          return db
-            .collection("threads")
-            .doc(threadId)
-            .get()
-            .then((doc) => {
-              if (doc.exists && doc.data().isBlocked) {
-                threads[message.from]["isProcessing"] = false;
-                return Promise.reject("Thread is blocked");
-              }
+        return db
+          .collection("threads")
+          .doc(threadId)
+          .get()
+          .then((doc) => {
+            if (doc.exists && doc.data().isBlocked) {
+              threads[message.from]["isProcessing"] = false;
+              return Promise.reject("Thread is blocked");
+            }
 
-              return _addMessage(threadId, message.body)
-                .then(() => {
-                  threads[message.from]["isProcessing"] = true;
+            return _addMessage(threadId, message.body)
+              .then(() => {
+                threads[message.from]["isProcessing"] = true;
 
-                  if (!threads[message.from]?.id) {
-                    _createThread(
-                      assistantId,
-                      message?.from,
-                      message?.sender?.pushname
-                    ).then((thread) => {
-                      threads[message.from].id = thread.id;
-                      _runAssistant(thread.id, assistantId).then((run) => {
-                        const runId = run.id;
-
-                        pollingInterval = setInterval(() => {
-                          _checkingStatus(
-                            (response) => {
-                              clearInterval(pollingInterval);
-                              client.sendText(
-                                message?.from,
-                                response.messages[0][0].text.value
-                              );
-                              processNextMessage(message.from);
-                            },
-                            thread.id,
-                            runId
-                          );
-                        }, 500);
-                      });
-                    });
-                  } else {
-                    _runAssistant(threadId, assistantId).then((run) => {
+                if (!threads[message.from]?.id) {
+                  _createThread(
+                    assistantId,
+                    message?.from,
+                    message?.sender?.pushname
+                  ).then((thread) => {
+                    threads[message.from].id = thread.id;
+                    _runAssistant(thread.id, assistantId).then((run) => {
                       const runId = run.id;
 
                       pollingInterval = setInterval(() => {
@@ -499,62 +484,79 @@ export default (db, gloogleService) => {
                             );
                             processNextMessage(message.from);
                           },
-                          threadId,
+                          thread.id,
                           runId
                         );
                       }, 500);
                     });
-                  }
+                  });
+                } else {
+                  _runAssistant(threadId, assistantId).then((run) => {
+                    const runId = run.id;
+
+                    pollingInterval = setInterval(() => {
+                      _checkingStatus(
+                        (response) => {
+                          clearInterval(pollingInterval);
+                          client.sendText(
+                            message?.from,
+                            response.messages[0][0].text.value
+                          );
+                          processNextMessage(message.from);
+                        },
+                        threadId,
+                        runId
+                      );
+                    }, 500);
+                  });
+                }
+              })
+              .catch((error) => {
+                console.error("Erro ao adicionar mensagem:", error);
+                processNextMessage(message.from);
+              });
+          });
+      };
+
+      const initializeThread = (threadId, message) => {
+        threads[message.from] = threads[message.from] || {};
+        threads[message.from]["id"] = threadId;
+        threads[message.from]["penddingMessages"] = [];
+
+        if (!threads[message.from]["isProcessing"]) {
+          addMessageAndRunAssistant(message);
+        } else {
+          threads[message.from]["penddingMessages"].push(message);
+        }
+      };
+
+      if (threads[message.from]?.id) {
+        initializeThread(threads[message.from].id, message);
+      } else {
+        db.collection("threads")
+          .where("phone", "==", `${message.from}`)
+          .get()
+          .then((querySnapshot) => {
+            if (!querySnapshot.empty) {
+              const doc = querySnapshot.docs[0];
+              initializeThread(doc.id, message);
+            } else {
+              _createThread(
+                assistantId,
+                message?.from,
+                message?.sender?.pushname
+              )
+                .then((thread) => {
+                  initializeThread(thread.id, message);
                 })
                 .catch((error) => {
-                  console.error("Erro ao adicionar mensagem:", error);
-                  processNextMessage(message.from);
+                  console.error("Erro ao criar thread:", error);
                 });
-            });
-        };
-
-        const initializeThread = (threadId, message) => {
-          threads[message.from] = threads[message.from] || {};
-          threads[message.from]["id"] = threadId;
-          threads[message.from]["penddingMessages"] = [];
-
-          if (!threads[message.from]["isProcessing"]) {
-            addMessageAndRunAssistant(message);
-          } else {
-            threads[message.from]["penddingMessages"].push(message);
-          }
-        };
-        console.log(threads[message.from]?.id);
-        console.log(message.from);
-
-        if (threads[message.from]?.id) {
-          initializeThread(threads[message.from].id, message);
-        } else {
-          db.collection("threads")
-            .where("phone", "==", `${message.from}`)
-            .get()
-            .then((querySnapshot) => {
-              if (!querySnapshot.empty) {
-                const doc = querySnapshot.docs[0];
-                initializeThread(doc.id, message);
-              } else {
-                _createThread(
-                  assistantId,
-                  message?.from,
-                  message?.sender?.pushname
-                )
-                  .then((thread) => {
-                    initializeThread(thread.id, message);
-                  })
-                  .catch((error) => {
-                    console.error("Erro ao criar thread:", error);
-                  });
-              }
-            })
-            .catch((error) => {
-              console.error("Erro ao consultar Firestore:", error);
-            });
-        }
+            }
+          })
+          .catch((error) => {
+            console.error("Erro ao consultar Firestore:", error);
+          });
       }
     });
   };
